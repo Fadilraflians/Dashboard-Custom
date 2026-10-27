@@ -1,0 +1,49 @@
+.headerCrumb {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding-left: 0.75rem;
+  margin-left: 0.5rem;
+  border-left: 1px solid var(--border, #e2e8f0);
+}
+.headerCrumbToggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-muted, #475569);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.headerCrumbToggle:hover {
+  background: var(--surface-muted, #f1f5f9);
+}
+.headerCrumbHome {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--text-muted, #475569);
+  text-decoration: none;
+  font-size: 0.85rem;
+}
+.headerCrumbHome:hover {
+  color: var(--brand, #005e5d);
+}
+.headerCrumbSep {
+  color: var(--text-dim, #94a3b8);
+}
+.headerCrumbCurrent {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-strong, #0f172a);
+}
+
+@media (max-width: 640px) {
+  .headerCrumbHome span {
+    display: none;
+  }
+}

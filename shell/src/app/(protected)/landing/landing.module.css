@@ -1,0 +1,825 @@
+/* ============================================================
+ * GovTech Access — Landing (home) page.
+ * Welcome banner + summary stats (count-up), search + filters,
+ * organization card grid (fade-in per card), pagination, help CTA.
+ * ============================================================ */
+
+.page {
+  width: 100%;
+  padding: 1.75rem 2rem 3rem;
+}
+
+/* ---------- Fade animations ---------- */
+.fadeIn {
+  animation: fadeInUp 0.45s ease both;
+}
+.cardFade {
+  animation: fadeInUp 0.5s ease both;
+}
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fadeIn,
+  .cardFade {
+    animation: none;
+  }
+}
+
+/* ---------- Welcome banner ---------- */
+.banner {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  overflow: hidden;
+  background: linear-gradient(135deg, #ffffff 0%, #f0f7f6 100%);
+  border: 1px solid #e2e8f0;
+  border-radius: 1.25rem;
+  padding: 1.75rem;
+  margin-bottom: 1.5rem;
+}
+.bannerInfo {
+  display: flex;
+  gap: 1.25rem;
+  position: relative;
+  z-index: 1;
+}
+.bannerAvatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #f59e0b, #f15a24);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+.title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 0.15rem;
+}
+.wave {
+  display: inline-block;
+}
+.subtitle {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #005e5d;
+  margin: 0 0 0.25rem;
+}
+.subtitleSmall {
+  font-size: 0.82rem;
+  color: #64748b;
+  margin: 0 0 1.1rem;
+  max-width: 48ch;
+  line-height: 1.5;
+}
+
+/* summary stat cards */
+.statRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.875rem;
+}
+.statCard {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.875rem;
+  padding: 0.875rem 1.25rem;
+  min-width: 190px;
+}
+.statIcon {
+  width: 40px;
+  height: 40px;
+  border-radius: 0.625rem;
+  background: #e6f4f4;
+  color: #005e5d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.statIconAlt {
+  background: #eef2ff;
+  color: #4f46e5;
+}
+.statLabel {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #94a3b8;
+  margin-bottom: 0.1rem;
+}
+.statValueRow {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+}
+.statValue {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1;
+}
+.statUnit {
+  font-size: 0.72rem;
+  color: #94a3b8;
+}
+.bannerArt {
+  position: relative;
+  flex-shrink: 0;
+  width: 420px;
+  max-width: 42%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  pointer-events: none;
+}
+.bannerArtSvg {
+  width: 100%;
+  height: auto;
+  max-height: 220px;
+}
+
+/* Hide the illustration on narrow screens where it would crowd the stats. */
+@media (max-width: 860px) {
+  .bannerArt {
+    display: none;
+  }
+}
+
+/* ---------- Search ---------- */
+.searchBar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.875rem;
+  padding: 0.5rem 0.5rem 0.5rem 1rem;
+  margin-bottom: 1rem;
+}
+.searchIcon {
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+.searchInput {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 0.875rem;
+  color: #1e293b;
+  background: transparent;
+}
+.searchInput::placeholder {
+  color: #94a3b8;
+}
+.searchBtn {
+  padding: 0.5rem 1.25rem;
+  border: none;
+  border-radius: 0.625rem;
+  background: #005e5d;
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.searchBtn:hover {
+  background: #004746;
+}
+
+/* ---------- Toolbar: chips + refresh ---------- */
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+.chips {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.chip {
+  padding: 0.4rem 0.9rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 9999px;
+  background: #fff;
+  color: #475569;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.chip:hover {
+  border-color: #99d6d4;
+}
+.chipActive {
+  background: #005e5d;
+  border-color: #005e5d;
+  color: #fff;
+}
+.refreshBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.75rem;
+  border: none;
+  background: none;
+  color: #005e5d;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.refreshBtn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.resultHint {
+  font-size: 0.78rem;
+  color: #94a3b8;
+  margin: 0.5rem 0 1rem;
+}
+
+.loadingBlock,
+.emptyBlock {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 3rem;
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.spin {
+  animation: landing-spin 0.7s linear infinite;
+}
+@keyframes landing-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---------- Organization grid + cards ---------- */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  align-items: start;
+}
+.orgCard {
+  position: relative;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-top: 3px solid #cbd5e1;
+  border-radius: 0.875rem;
+  padding: 1.1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  transition:
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
+}
+.orgCard:hover {
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
+  transform: translateY(-2px);
+}
+/* KEMENTRIAN = teal muda, LEMBAGA (non-kementerian) = teal tua. */
+.accentKementerian {
+  border-top-color: #14b8a6;
+}
+.accentLembaga {
+  border-top-color: #005e5d;
+}
+.accentKementerian .orgNumber {
+  background: #14b8a6;
+}
+.accentKementerian .orgIcon {
+  background: #ccfbf1;
+  color: #0d9488;
+}
+.accentKementerian .orgAction {
+  color: #0d9488;
+}
+.accentKementerian .orgAction:hover {
+  background: #ccfbf1;
+  border-color: #5eead4;
+}
+
+/* Expanded card: stays in its grid cell (NOT full-width); the panel slides
+ * down below the card content. */
+.orgCardExpanded {
+  box-shadow: 0 18px 40px rgba(0, 94, 93, 0.14);
+  border-color: #99d6d4;
+}
+.orgCardExpanded:hover {
+  transform: none;
+}
+
+/* Applications panel — OVERLAY (opsi C): floats over the content below the
+ * card without pushing neighbouring cards. The panel leaves normal flow
+ * (position: absolute) so the card height does not change; it stays at its
+ * natural vertical spot (no `top`) and spans the card's inner width. */
+/* In-flow slide-down panel inside the card (card grows downward). */
+.appsPanel {
+  margin-top: 0.35rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  background: #f8fafc;
+  padding: 0 1rem;
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  border-width: 0;
+  transition:
+    max-height 0.32s ease,
+    opacity 0.25s ease,
+    padding 0.32s ease,
+    border-width 0.32s ease;
+}
+.appsPanelOpen {
+  max-height: 640px;
+  opacity: 1;
+  padding: 0.9rem 1rem;
+  border-width: 1px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .appsPanel {
+    transition: none;
+  }
+}
+.appsPanelHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.6rem;
+}
+.appsPanelTitle {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #005e5d;
+}
+.appsPanelCount {
+  font-size: 0.72rem;
+  color: #64748b;
+}
+.appsLoading,
+.appsEmpty {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1.25rem;
+  justify-content: center;
+  color: #64748b;
+  font-size: 0.85rem;
+}
+.appsList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.appRow {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.6rem;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.625rem;
+  padding: 0.8rem 0.9rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.appRow:hover {
+  border-color: #99d6d4;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.06);
+}
+/* top part: icon + text info side by side */
+.appRowMain {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+}
+.appIcon {
+  width: 36px;
+  height: 36px;
+  border-radius: 0.5rem;
+  background: #e6f4f4;
+  color: #005e5d;
+  font-size: 0.72rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.appInfo {
+  flex: 1;
+  min-width: 0;
+}
+.appName {
+  display: block;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.3;
+}
+.appMetaRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.2rem;
+}
+.appBadge {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #b45309;
+  background: #fef3c7;
+  padding: 0.1rem 0.4rem;
+  border-radius: 0.3rem;
+}
+.appStatus {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #059669;
+}
+.appStatusDot {
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 9999px;
+  background: #10b981;
+}
+.appDesc {
+  font-size: 0.76rem;
+  color: #64748b;
+  margin: 0.2rem 0 0;
+  line-height: 1.4;
+}
+.appEnterBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  width: 100%;
+  padding: 0.55rem 0.9rem;
+  border: none;
+  border-radius: 0.5rem;
+  background: #005e5d;
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease;
+}
+.appEnterBtn:hover {
+  background: #004746;
+}
+.appEnterBtnDisabled,
+.appEnterBtnDisabled:hover {
+  background: #f1f5f9;
+  color: #64748b;
+  border: 1px solid #cbd5e1;
+  cursor: not-allowed;
+}
+.orgActionChevUp {
+  transform: rotate(180deg);
+}
+
+.orgTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.orgNumber {
+  width: 30px;
+  height: 30px;
+  border-radius: 0.5rem;
+  background: #005e5d;
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.orgPortalBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.7rem;
+  color: #64748b;
+  background: #f1f5f9;
+  padding: 0.2rem 0.5rem;
+  border-radius: 9999px;
+}
+
+.orgBody {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.orgIcon {
+  width: 34px;
+  height: 34px;
+  border-radius: 0.5rem;
+  background: #e6f4f4;
+  color: #005e5d;
+  font-size: 0.62rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.orgName {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+  line-height: 1.3;
+}
+.orgDesc {
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: #64748b;
+  margin: 0;
+  flex: 1;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.orgMeta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.orgStatus {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #059669;
+}
+.orgType {
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: #94a3b8;
+  background: #f1f5f9;
+  padding: 0.15rem 0.45rem;
+  border-radius: 0.3rem;
+}
+.orgAction {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  width: 100%;
+  margin-top: 0.35rem;
+  padding: 0.55rem;
+  border: 1px dashed #cbd5e1;
+  border-radius: 0.5rem;
+  background: #f8fafc;
+  color: #005e5d;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+.orgAction:hover {
+  background: #e6f4f4;
+  border-color: #99d6d4;
+}
+
+
+/* ---------- Pagination ---------- */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 1rem 0;
+  border-top: 1px solid #f1f5f9;
+  margin-bottom: 1.25rem;
+}
+.pageInfo {
+  font-size: 0.78rem;
+  color: #64748b;
+}
+.pager {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.pagerBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.4rem 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  background: #fff;
+  color: #475569;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+.pagerBtn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.pageNum {
+  width: 32px;
+  height: 32px;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  background: #fff;
+  color: #475569;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.pageNumActive {
+  background: #005e5d;
+  border-color: #005e5d;
+  color: #fff;
+}
+
+/* ---------- Help CTA ---------- */
+.helpCta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 1rem;
+  padding: 1.25rem 1.5rem;
+}
+.helpInfo {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.helpIcon {
+  width: 44px;
+  height: 44px;
+  border-radius: 0.75rem;
+  background: #e6f4f4;
+  color: #005e5d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.helpTitle {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 0.2rem;
+}
+.helpText {
+  font-size: 0.8rem;
+  color: #64748b;
+  margin: 0;
+  max-width: 52ch;
+  line-height: 1.5;
+}
+.helpActions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.helpGhost {
+  padding: 0.6rem 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.625rem;
+  background: #fff;
+  color: #475569;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.helpGhost:hover {
+  border-color: #cbd5e1;
+}
+.helpPrimary {
+  padding: 0.6rem 1.1rem;
+  border: none;
+  border-radius: 0.625rem;
+  background: #005e5d;
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.helpPrimary:hover {
+  background: #004746;
+}
+
+/* ============================================================
+ * Dark mode
+ * ============================================================ */
+:global([data-theme="dark"]) .banner {
+  background: linear-gradient(135deg, #161b22 0%, #11201f 100%);
+  border-color: #2a3340;
+}
+:global([data-theme="dark"]) .title,
+:global([data-theme="dark"]) .statValue,
+:global([data-theme="dark"]) .orgName,
+:global([data-theme="dark"]) .helpTitle {
+  color: #e8edf4;
+}
+:global([data-theme="dark"]) .subtitleSmall,
+:global([data-theme="dark"]) .orgDesc,
+:global([data-theme="dark"]) .helpText,
+:global([data-theme="dark"]) .pageInfo,
+:global([data-theme="dark"]) .resultHint {
+  color: #94a3b8;
+}
+:global([data-theme="dark"]) .statCard,
+:global([data-theme="dark"]) .searchBar,
+:global([data-theme="dark"]) .orgCard,
+:global([data-theme="dark"]) .helpCta {
+  background: #161b22;
+  border-color: #2a3340;
+}
+:global([data-theme="dark"]) .chip,
+:global([data-theme="dark"]) .pagerBtn,
+:global([data-theme="dark"]) .pageNum,
+:global([data-theme="dark"]) .helpGhost {
+  background: #11161c;
+  border-color: #2a3340;
+  color: #aab4c0;
+}
+:global([data-theme="dark"]) .orgAction {
+  background: #11161c;
+  border-color: #2a3340;
+}
+:global([data-theme="dark"]) .orgType,
+:global([data-theme="dark"]) .orgPortalBadge {
+  background: #1c2430;
+  color: #94a3b8;
+}
+:global([data-theme="dark"]) .appsPanel {
+  background: #11161c;
+  border-color: #2a3340;
+}
+:global([data-theme="dark"]) .appRow {
+  background: #161b22;
+  border-color: #2a3340;
+}
+:global([data-theme="dark"]) .appName {
+  color: #e8edf4;
+}
+:global([data-theme="dark"]) .appDesc,
+:global([data-theme="dark"]) .appsPanelCount {
+  color: #94a3b8;
+}
+:global([data-theme="dark"]) .appIcon {
+  background: #1c2430;
+  color: #5eead4;
+}

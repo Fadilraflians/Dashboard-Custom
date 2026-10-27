@@ -1,0 +1,455 @@
+.widgetWrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-sizing: border-box;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.05);
+  transition: box-shadow 0.18s ease, border-color 0.18s ease, transform 0.15s ease;
+  user-select: none;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.widgetWrapper:hover {
+  box-shadow: 0 6px 18px rgba(0, 94, 84, 0.1);
+  border-color: #cbd5e1;
+}
+
+.highlighted {
+  border-color: #00a890 !important;
+  box-shadow: 0 0 0 4px rgb(0 168 144 / 24%), 0 10px 28px rgb(0 94 84 / 18%) !important;
+  animation: newWidgetHighlight 1s ease-in-out 2;
+  z-index: 20 !important;
+}
+
+@keyframes newWidgetHighlight {
+  50% { box-shadow: 0 0 0 7px rgb(0 168 144 / 12%), 0 10px 28px rgb(0 94 84 / 18%); }
+}
+
+/* Moving state when user drags widget across canvas */
+.isMoving {
+  box-shadow: 0 16px 36px rgba(0, 94, 84, 0.22) !important;
+  border-color: #007d79 !important;
+  cursor: grabbing !important;
+  opacity: 0.95;
+  transition: none !important;
+}
+
+.isMoving .widgetControlBar {
+  background: #e6f4f2 !important;
+  cursor: grabbing !important;
+}
+
+.freeDragHint {
+  font-size: 10px;
+  color: #007d79;
+  font-weight: 600;
+  opacity: 0.85;
+  letter-spacing: 0.02em;
+}
+
+.positionTooltipBadge {
+  position: absolute;
+  top: -28px;
+  left: 0;
+  background: #005e54;
+  color: #ffffff;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  pointer-events: none;
+  z-index: 60;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  animation: fadeInBadge 0.12s ease-out;
+}
+
+/* Control Bar on Top of Widget */
+.widgetControlBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 10px;
+  height: 28px;
+  box-sizing: border-box;
+  background: #f8fafc;
+  border-bottom: 1px solid #eef2f6;
+  font-size: 11px;
+  color: #64748b;
+  cursor: grab;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.widgetControlBar:active {
+  cursor: grabbing;
+}
+
+.widgetControlBar:hover {
+  background: #f1f5f9;
+  color: #1e293b;
+}
+
+.dragHandleGroup {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  font-size: 11.5px;
+  color: #005e54;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 50%;
+}
+
+.dragTitleText {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dragIcon {
+  color: #007d79;
+  cursor: grab;
+  flex-shrink: 0;
+}
+
+.widgetControlBar:active .dragIcon {
+  cursor: grabbing;
+}
+
+.dimensionPresets {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.presetBtn {
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #475569;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  line-height: 1.2;
+}
+
+.presetBtn:hover {
+  border-color: #007d79;
+  color: #005e54;
+  background: #f0fdf9;
+}
+
+.presetBtnActive {
+  background: #005e54 !important;
+  color: #ffffff !important;
+  border-color: #005e54 !important;
+}
+
+/* Inner content area */
+.widgetInnerContent {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+  overflow-y: auto;
+  background: #ffffff;
+  box-sizing: border-box;
+  container: dashboard-widget / size;
+}
+
+/* Remove child inner border and make card content adapt fluidly */
+.widgetInnerContent > * {
+  width: 100% !important;
+  height: 100% !important;
+  flex: 1 1 auto !important;
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  box-sizing: border-box !important;
+  padding: clamp(12px, 2.5%, 20px) clamp(14px, 3%, 22px) !important;
+  gap: clamp(6px, 1.5vh, 12px) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: flex-start !important;
+  min-width: 0 !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+}
+
+/* Size the dashboard content from its widget, not from the browser viewport. */
+@container dashboard-widget (max-width: 340px) {
+  .widgetInnerContent > * {
+    padding: 9px !important;
+    gap: 7px !important;
+  }
+
+  .widgetInnerContent article header {
+    min-width: 0;
+    gap: 7px;
+  }
+
+  .widgetInnerContent article h3 {
+    font-size: 13px;
+    line-height: 1.3;
+    overflow-wrap: normal;
+    word-break: normal;
+    hyphens: none;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    overflow: hidden;
+  }
+
+  .widgetInnerContent article p {
+    overflow-wrap: normal;
+    word-break: normal;
+    hyphens: none;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+  }
+
+  .widgetInnerContent article [class*="cardValue"] {
+    font-size: clamp(14px, 8cqw, 22px) !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+    text-overflow: clip !important;
+  }
+
+  .widgetInnerContent article [class*="cardLabel"],
+  .widgetInnerContent article [class*="cardSubtitle"] {
+    white-space: normal !important;
+  }
+
+  .widgetInnerContent article[class*="cardContainer"] {
+    min-height: 0 !important;
+    gap: 5px !important;
+    padding: 8px !important;
+  }
+
+  .widgetInnerContent article [class*="iconBox"] {
+    width: 26px !important;
+    height: 26px !important;
+  }
+
+  .widgetInnerContent article [class*="cardLabel"] {
+    font-size: 9px !important;
+    letter-spacing: 0 !important;
+  }
+
+  .widgetInnerContent article [class*="cardValue"] {
+    font-size: clamp(13px, 7cqw, 18px) !important;
+    line-height: 1.05 !important;
+  }
+
+  .widgetInnerContent article [class*="cardSubtitle"] {
+    font-size: 9px !important;
+    line-height: 1.15 !important;
+  }
+}
+
+@container dashboard-widget (max-height: 260px) {
+  .widgetInnerContent > * {
+    padding-top: 7px !important;
+    padding-bottom: 7px !important;
+    gap: 5px !important;
+  }
+
+  .widgetInnerContent article[class*="cardContainer"] {
+    min-height: 0 !important;
+    gap: 4px !important;
+    padding-top: 6px !important;
+    padding-bottom: 6px !important;
+  }
+
+  .widgetInnerContent article [class*="iconBox"] {
+    width: 24px !important;
+    height: 24px !important;
+  }
+
+  .widgetInnerContent article [class*="cardValue"] {
+    font-size: clamp(12px, 6cqh, 17px) !important;
+  }
+}
+
+/* Metric cards use a fixed compact footprint and never show inner scrollbars. */
+.widgetWrapper[data-widget-type="card"] .widgetInnerContent {
+  overflow: hidden;
+}
+
+.widgetWrapper[data-widget-type="card"] .widgetInnerContent > * {
+  overflow: hidden !important;
+}
+
+.widgetWrapper[data-widget-type="card"] .widgetInnerContent article[class*="cardContainer"] {
+  min-height: 0 !important;
+  gap: 5px !important;
+  padding: 8px !important;
+}
+
+.widgetWrapper[data-widget-type="card"] .widgetInnerContent article [class*="iconBox"] {
+  width: 26px !important;
+  height: 26px !important;
+}
+
+.widgetWrapper[data-widget-type="card"] .widgetInnerContent article [class*="cardLabel"] {
+  font-size: 13px !important;
+  letter-spacing: 0.03em !important;
+  white-space: normal !important;
+}
+
+.widgetWrapper[data-widget-type="card"] .widgetInnerContent article [class*="cardValue"] {
+  font-size: 24px !important;
+  line-height: 1.2 !important;
+  white-space: normal !important;
+  overflow-wrap: anywhere !important;
+  text-overflow: clip !important;
+}
+
+.widgetWrapper[data-widget-type="card"] .widgetInnerContent article [class*="cardSubtitle"] {
+  font-size: 12px !important;
+  line-height: normal !important;
+  white-space: normal !important;
+}
+
+/* Fluid responsive typography inside card widgets so nothing overflows */
+.widgetInnerContent article [class*="cardValue"] {
+  font-size: clamp(20px, 2.5vw, 28px) !important;
+  font-weight: 700 !important;
+  line-height: 1.15 !important;
+  margin: 2px 0 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.widgetInnerContent article [class*="cardLabel"] {
+  font-size: clamp(11.5px, 1.2vw, 13px) !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.widgetInnerContent article [class*="cardSubtitle"] {
+  font-size: clamp(11px, 1.1vw, 12px) !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.widgetInnerContent article [class*="topRow"] {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+}
+
+.widgetInnerContent article [class*="iconBox"] {
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 8px !important;
+}
+
+/* Resize Handles */
+.resizeHandleRight {
+  position: absolute;
+  top: 28px;
+  right: -4px;
+  width: 9px;
+  bottom: 12px;
+  cursor: ew-resize;
+  z-index: 10;
+  transition: background 0.15s ease;
+}
+
+.resizeHandleRight:hover,
+.isResizingHorizontal {
+  background: rgba(0, 125, 121, 0.35);
+  border-radius: 3px;
+}
+
+.resizeHandleBottom {
+  position: absolute;
+  left: 12px;
+  right: 18px;
+  bottom: -4px;
+  height: 9px;
+  cursor: ns-resize;
+  z-index: 10;
+  transition: background 0.15s ease;
+}
+
+.resizeHandleBottom:hover,
+.isResizingVertical {
+  background: rgba(0, 125, 121, 0.35);
+  border-radius: 3px;
+}
+
+.resizeHandleCorner {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 20px;
+  height: 20px;
+  cursor: nwse-resize;
+  z-index: 15;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  background: #f8fafc;
+  border-top-left-radius: 6px;
+  border-bottom-right-radius: 11px;
+  border: 1px solid #cbd5e1;
+  transition: all 0.15s ease;
+}
+
+.resizeHandleCorner:hover,
+.isResizingBoth {
+  background: #005e54;
+  color: #ffffff;
+  border-color: #005e54;
+  box-shadow: 0 0 8px rgba(0, 94, 84, 0.4);
+}
+
+.cornerLines {
+  width: 7px;
+  height: 7px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+}
+
+/* Live size badge while resizing */
+.sizeTooltipBadge {
+  position: absolute;
+  bottom: 26px;
+  right: 8px;
+  background: #0f172a;
+  color: #ffffff;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  pointer-events: none;
+  z-index: 30;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+  animation: fadeInBadge 0.12s ease-out;
+}
+
+@keyframes fadeInBadge {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}

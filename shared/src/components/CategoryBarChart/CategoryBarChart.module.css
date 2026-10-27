@@ -1,0 +1,21 @@
+.chartCard{display:flex;box-sizing:border-box;width:100%;height:100%;min-height:280px;flex-direction:column;gap:16px;overflow:hidden;padding:18px 20px;border:1px solid #e4eaf0;border-radius:14px;background:linear-gradient(180deg,#fff 0%,#fcfefe 100%);box-shadow:0 2px 8px rgba(16,36,60,.05);font-family:inherit;color:#172b4d}
+.chartHeader{display:flex;align-items:center;gap:11px;min-width:0}
+.chartIcon{display:grid;flex:0 0 38px;width:38px;height:38px;place-items:center;border-radius:11px;background:#e8f5f3;color:#087f73;font-size:18px;font-weight:800}
+.chartHeading{flex:1;min-width:0}.chartHeading h3{margin:0;color:#15253d;font-size:15px;line-height:1.35;font-weight:700}.chartHeading p{margin:4px 0 0;color:#718096;font-size:12px;line-height:1.4}
+.metricTag{max-width:30%;overflow:hidden;padding:5px 9px;border:1px solid #d9e8e5;border-radius:8px;background:#f4fbf9;color:#087f73;font-size:11px;text-overflow:ellipsis;white-space:nowrap}
+.chartViewport{width:100%;min-height:220px;overflow-x:auto;overflow-y:hidden;border-radius:10px;background:linear-gradient(180deg,#fff,#fbfdfd)}
+.chartSvg{display:block;width:100%;min-width:680px;height:auto;max-height:320px}.gridLine{stroke:#e9eef2;stroke-dasharray:3 5;stroke-width:1}.baseline{stroke:#cad5dd;stroke-width:1.2}
+.axisText{fill:#8996a8;font-family:inherit;font-size:10px}.categoryText{fill:#53647b;font-family:inherit;font-size:10px;font-weight:600}.valueText{fill:#42536b;font-family:inherit;font-size:9px;font-weight:700}.barGroup rect{transform-box:fill-box;transform-origin:center bottom;transition:filter .18s ease,opacity .18s ease}.barGroup:hover rect{filter:brightness(1.08) drop-shadow(0 3px 5px rgba(0,107,98,.22))}.barGroup:hover .categoryText{fill:#006b62}
+.empty{display:grid;flex:1;min-height:160px;place-items:center;color:#8793a5;font-size:13px}
+@media(max-width:640px){.chartCard{padding:14px}.metricTag{max-width:25%}.chartSvg{min-width:640px}}
+.chartCard{min-width:0;max-width:100%}.chartHeader,.chartHeading{min-width:0}.chartHeading h3,.chartHeading p{overflow-wrap:anywhere}.chartSvg{min-width:0}
+@media(max-width:640px){.chartCard{padding:12px}.chartSvg{min-width:0}}
+.chartCard{min-height:0}
+.chartHeader{flex-wrap:wrap}
+.chartHeading h3,.chartHeading p{overflow-wrap:break-word;word-break:normal}
+.chartViewport{min-height:0;flex:1 1 0;overflow:hidden}
+.chartSvg{width:100% !important;min-width:0 !important;height:100%;max-height:100%;aspect-ratio:8 / 3}
+.empty{min-height:0}
+@container dashboard-widget (max-height:260px){.chartCard{gap:6px}.chartViewport{min-height:40px}.chartIcon{flex-basis:30px;width:30px;height:30px}}
+@container dashboard-widget (max-width:340px){.chartCard{padding:9px;gap:7px}.chartHeader{gap:7px}.chartHeading h3{font-size:13px;line-height:1.3}.chartHeading p{font-size:10.5px}.chartIcon{flex-basis:30px;width:30px;height:30px}.metricTag{font-size:10px;padding:4px 6px}}
+@container dashboard-widget (max-width:340px){.chartHeader{display:grid;grid-template-columns:30px minmax(0,1fr);align-items:start}.chartIcon{grid-column:1;grid-row:1}.chartHeading{grid-column:2;grid-row:1}.metricTag{grid-column:2;grid-row:2;max-width:100%;justify-self:start}.chartHeading h3{overflow-wrap:normal;word-break:normal;hyphens:none;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}.chartHeading p{overflow-wrap:normal;word-break:normal;hyphens:none;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}}

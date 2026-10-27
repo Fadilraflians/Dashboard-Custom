@@ -1,0 +1,59 @@
+.panel {
+  position: relative;
+  z-index: 30;
+  border: 1px solid #d7e1e7;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgb(15 23 42 / 5%);
+}
+
+.header {
+  display: flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 18px;
+  border-radius: 7px 7px 0 0;
+  background: #4f7980;
+  color: #fff;
+}
+
+.header h2 { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 850; }
+.header > button,
+.calendarHead button { display: grid; width: 25px; height: 25px; place-items: center; border: 0; background: transparent; color: inherit; font-size: 18px; cursor: pointer; }
+.body { padding: 15px 18px 12px; }
+
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 13px 15px; }
+.grid label,
+.periodField { display: flex; min-width: 0; flex-direction: column; gap: 6px; }
+.grid label > span,
+.periodField > span { color: #344054; font-size: 10px; font-weight: 750; }
+.periodField { position: relative; }
+
+.grid select,
+.calendarGrid input,
+.dateRange { width: 100%; height: 35px; border: 1px solid #d4dee6; border-radius: 6px; background: #fff; color: #344054; padding: 0 10px; font-family: inherit; font-size: 10px; }
+.dateRange { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.dateRange svg:last-child { margin-left: auto; }
+
+.calendarPopover { position: absolute; z-index: 1000; top: calc(100% + 7px); left: 0; width: 340px; padding: 12px; border: 1px solid #d3dde4; border-radius: 8px; background: #fff; box-shadow: 0 12px 30px rgb(15 23 42 / 16%); }
+.calendarHead { display: flex; align-items: center; justify-content: space-between; margin-bottom: 11px; color: #182433; font-size: 11px; }
+.calendarGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.calendarGrid label > span { color: #667085; font-size: 9px; }
+.calendarApply { width: 100%; min-height: 32px; margin-top: 11px; border: 0; border-radius: 6px; background: #087c7c; color: #fff; font-size: 10px; font-weight: 800; cursor: pointer; }
+
+.footer { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 13px; padding-top: 11px; border-top: 1px solid #e4e9ed; }
+.footer > div { display: flex; align-items: center; gap: 8px; }
+.footer span { color: #667085; font-size: 9px; }
+.footer em { padding: 5px 8px; border-radius: 4px; background: #f3f6f8; color: #526174; font-size: 9px; font-style: normal; }
+.actions button { display: inline-flex; min-height: 34px; align-items: center; justify-content: center; gap: 7px; border-radius: 6px; padding: 0 15px; font-size: 10px; font-weight: 800; cursor: pointer; }
+.reset { border: 1px solid #d7dee6; background: #fff; color: #475467; }
+.apply { border: 1px solid #c45826; background: #c45826; color: #fff; }
+
+@media (max-width: 700px) {
+  .grid { grid-template-columns: 1fr; }
+  .footer { align-items: flex-start; flex-direction: column; }
+  .actions, .actions button { width: 100%; }
+  .calendarPopover { width: min(340px, calc(100vw - 64px)); }
+  .calendarGrid { grid-template-columns: 1fr; }
+}

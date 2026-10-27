@@ -1,0 +1,35 @@
+# VCS and CI
+.git
+.gitignore
+.gitlab-ci.yml
+.gitlab
+
+# Node / Next.js
+**/node_modules
+**/.next
+coverage
+.pnpm-store
+
+# Build outputs
+dist
+tmp
+*.exe
+
+# IDE and tooling
+.idea
+.vscode
+.kiro
+
+# Secrets and local env
+.env
+.env.*
+*.pem
+*.key
+
+# Docs and misc
+**/*.md
+**/*.log
+
+# Docker files themselves
+Dockerfile*
+.dockerignore

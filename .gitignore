@@ -1,0 +1,42 @@
+# ===== Dependencies =====
+node_modules/
+**/node_modules/
+.pnpm-store/
+
+# ===== Build output / cache =====
+.next/
+**/.next/
+dist/
+**/dist/
+build/
+*.tsbuildinfo
+
+# ===== Secrets & environment (JANGAN commit) =====
+.env
+.env.local
+.env.*.local
+**/.env
+**/.env.local
+*.pem
+*.key
+# Kredensial hasil generate (hash password + secret OTP)
+AUTH_SYSTEM/16_set_credentials.sql
+AUTH_SYSTEM/setup/.db-cred
+
+# ===== Logs =====
+*.log
+**/*.log
+api*.stdout.log
+api*.stderr.log
+
+# ===== Archives / misc =====
+*.7z
+*.zip
+
+# ===== OS / editor =====
+.DS_Store
+Thumbs.db
+
+# ===== Folder duplikat / tidak dipakai =====
+custom-dashboard - Copy/
+folder zip/

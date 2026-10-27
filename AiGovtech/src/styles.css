@@ -1,0 +1,358 @@
+* {
+  box-sizing: border-box;
+}
+
+.aiGovtech {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: linear-gradient(180deg, #f7faf9 0%, #f2f7f5 100%);
+  color: #172b2b;
+  font-family: "Aptos", "Segoe UI", sans-serif;
+}
+
+.aiGovtechHeader {
+  display: flex;
+  flex: 0 0 66px;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 66px;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #e0e8e5;
+  background: #fff;
+  box-shadow: 0 2px 10px rgb(18 56 48 / 4%);
+  z-index: 1;
+}
+
+.aiGovtechMark,
+.aiMessageAvatar {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #075e58;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.aiGovtechIdentity {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.aiGovtechIdentity strong {
+  font-size: 0.92rem;
+}
+
+.aiGovtechConnection {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: #677b78;
+  font-size: 0.72rem;
+}
+
+.aiGovtechConnection i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #98a5a2;
+}
+
+.aiGovtechConnection-connected i {
+  background: #20a06b;
+}
+
+.aiGovtechConnection-disconnected i {
+  background: #dc3f3f;
+}
+
+.aiGovtechConnection-database-disconnected i,
+.aiGovtechConnection-model-disconnected i {
+  background: #f79009;
+}
+
+.aiGovtechMessages {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 1.1rem 0.9rem;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.aiGovtechMessages::-webkit-scrollbar {
+  display: none;
+}
+
+.aiGovtechDate {
+  margin: 0 0 1rem;
+  color: #82928f;
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.aiMessage {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin: 0 0 0.85rem;
+}
+
+.aiMessage p {
+  max-width: 88%;
+  margin: 0;
+  padding: 0.68rem 0.8rem;
+  border: 1px solid #e2eae7;
+  border-radius: 4px 12px 12px;
+  background: #fff;
+  color: #29403c;
+  font-size: 0.82rem;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  box-shadow: 0 3px 12px rgb(18 56 48 / 3%);
+}
+
+.aiMessageAvatar {
+  width: 25px;
+  height: 25px;
+  border-radius: 8px;
+  font-size: 0.6rem;
+}
+
+.aiMessage-user {
+  justify-content: flex-end;
+}
+
+.aiMessage-user p {
+  border-color: #075e58;
+  border-radius: 12px 4px 12px 12px;
+  background: #075e58;
+  color: #fff;
+  box-shadow: 0 4px 12px rgb(7 94 88 / 14%);
+}
+
+.aiStarterPrompts {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0.25rem 0 0 2rem;
+}
+
+.aiStarterPrompt {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.62rem 0.7rem;
+  border: 1px solid #dce8e4;
+  border-radius: 8px;
+  background: rgb(255 255 255 / 78%);
+  color: #36534d;
+  font: inherit;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 140ms ease, background 140ms ease,
+    transform 140ms ease;
+}
+
+.aiStarterPrompt:hover {
+  transform: translateY(-1px);
+  border-color: #73aaa0;
+  background: #fff;
+}
+
+.aiStarterPrompt span {
+  flex: 0 0 auto;
+  color: #0b8274;
+  font-size: 0.9rem;
+}
+
+.aiTyping {
+  display: flex;
+  gap: 4px;
+  margin: 0 0 0 2rem;
+  padding: 0.6rem;
+}
+
+.aiTyping span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #73908a;
+  animation: aiTyping 1s ease-in-out infinite alternate;
+}
+
+.aiTyping span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.aiTyping span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes aiTyping {
+  to {
+    opacity: 0.35;
+    transform: translateY(-3px);
+  }
+}
+
+.aiComposer {
+  flex: 0 0 auto;
+  padding: 0.75rem;
+  border-top: 1px solid #e0e8e5;
+  background: #fff;
+  box-shadow: 0 -3px 12px rgb(18 56 48 / 3%);
+}
+
+.aiComposerBox {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+  padding: 0.55rem;
+  border: 1px solid #d5e1dd;
+  border-radius: 9px;
+  background: #fff;
+}
+
+.aiComposerBox:focus-within {
+  border-color: #0a8075;
+  box-shadow: 0 0 0 2px rgb(10 128 117 / 12%);
+}
+
+.aiComposer textarea {
+  flex: 1;
+  min-width: 0;
+  resize: none;
+  border: 0;
+  outline: 0;
+  color: #172b2b;
+  font: inherit;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.aiComposer textarea::placeholder {
+  color: #93a19e;
+}
+
+.aiComposerBox button {
+  display: grid;
+  flex: 0 0 34px;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 7px;
+  background: #075e58;
+  color: #fff;
+  cursor: pointer;
+}
+
+.aiComposerBox button:disabled {
+  background: #b8c9c4;
+  cursor: not-allowed;
+}
+
+.aiComposerBox button svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.aiComposerHint {
+  margin: 0.4rem 0 0;
+  color: #879592;
+  font-size: 0.65rem;
+  text-align: center;
+}
+
+.aiComposerError {
+  margin: 0 0 0.55rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid #f0c7bd;
+  border-radius: 6px;
+  background: #fff5f2;
+  color: #983c2f;
+  font-size: 0.73rem;
+  line-height: 1.4;
+}
+
+/* ===== Widget badge in chat message ===== */
+.aiMessageBody {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.aiWidgetCardBadge {
+  margin-top: 8px;
+  padding: 8px 10px;
+  background: #f0fbf9;
+  border: 1px solid #c2ece5;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.aiWidgetBadgeRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.aiWidgetCheckIcon {
+  width: 18px;
+  height: 18px;
+  background: #005e54;
+  color: #ffffff;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.aiWidgetTitleText {
+  font-size: 0.74rem;
+  color: #004d40;
+  line-height: 1.3;
+}
+
+.btnReapplyWidget {
+  align-self: flex-start;
+  background: #ffffff;
+  border: 1px solid #007d79;
+  color: #005e54;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btnReapplyWidget:hover {
+  background: #005e54;
+  color: #ffffff;
+}

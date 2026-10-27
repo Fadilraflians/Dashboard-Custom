@@ -1,0 +1,76 @@
+stages:
+  - scan-code
+  - build
+  - deploy
+
+include:
+  - project: GOVPORTAL/govdevsecops/gitlab-cicd
+    file: /templates/scan-code.yml
+  - project: GOVPORTAL/govdevsecops/gitlab-cicd
+    file: /templates/build-image.yml
+  - project: GOVPORTAL/govdevsecops/gitlab-cicd
+    file: /templates/deploy-image.yml
+
+# ==========================================================
+# VARIABLES
+# ==========================================================
+variables:
+  # --- App ---
+  APP_LANGUAGE: react
+  IMAGE_COMMIT: ${CI_COMMIT_SHORT_SHA}
+  DOCKERFILE_ARG: >-
+    --build-arg APP_FOLDER_NAME=logs
+  # --- OpenShift ---
+  OCP_SERVER_URL: https://api.dev-digi.ocp.hq.bni.co.id:6443
+  OCP_NAMESPACE: dashboard-garansi-dev
+  # --- Sonarqube ---
+  SONARQUBE_PROJECT_KEY: "ifp-web-shell"
+  SONARQUBE_PROJECT_NAME: "ifp-web-shell"
+  SONARQUBE_TOKEN: "sqp_465ffdfac300d57e68a2310f7334e832aaf64705"
+  SONARQUBE_EXCLUSION: ""
+  RUN_UNIT_TEST: "true"
+  # --- Vault ---
+  VAULT_DEPLOYMENT_VALUES_ENDPOINT: /v1/ifp-dev/data/web-shell-values
+
+# ==========================================================
+# SCAN-CODE | ENV: DEV
+# ==========================================================
+scan-code-dev:
+  extends: .scan-code
+  needs: []
+  tags:
+    - dev-192.168.151.73-GOVTECH01
+  environment:
+    name: dev
+    deployment_tier: development
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "development" && $CI_PIPELINE_SOURCE == "push" && $PIPELINE_ENABLED != "false"'
+
+# ==========================================================
+# BUILD | ENV: DEV
+# ==========================================================
+build-image-dev:
+  extends: .build-image
+  needs: []
+  tags:
+    - dev-192.168.223.58-GOVTECHDEV
+  environment:
+    name: dev
+    deployment_tier: development
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "development" && $CI_PIPELINE_SOURCE == "push" && $PIPELINE_ENABLED != "false"'
+
+# ==========================================================
+# DEPLOY | ENV: DEV
+# ==========================================================
+deploy-image-dev:
+  extends: .deploy-image
+  needs:
+    - build-image-dev
+  tags:
+    - dev-192.168.223.58-GOVTECHDEV
+  environment:
+    name: dev
+    deployment_tier: development
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "development" && $CI_PIPELINE_SOURCE == "push" && $PIPELINE_ENABLED != "false"'

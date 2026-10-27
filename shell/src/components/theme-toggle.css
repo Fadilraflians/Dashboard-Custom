@@ -1,0 +1,32 @@
+.themeToggle {
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  border: 1px solid var(--border, #e2e8f0);
+  background: var(--surface, #ffffff);
+  color: #005e5d;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.themeToggle:hover {
+  background: #e6f4f4;
+  border-color: #005e5d;
+}
+
+.themeToggle:focus-visible {
+  outline: 2px solid #005e5d;
+  outline-offset: 2px;
+}
+
+[data-theme="dark"] .themeToggle {
+  color: #5eead4;
+}
+[data-theme="dark"] .themeToggle:hover {
+  background: #1c2430;
+  border-color: #5eead4;
+}

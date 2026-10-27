@@ -1,0 +1,209 @@
+.chartCard {
+  background: #ffffff;
+  border: 1px solid #e4e7ec;
+  border-radius: 12px;
+  padding: 20px 22px;
+  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  box-sizing: border-box;
+  transition: all 0.2s ease;
+}
+
+.chartCard:hover {
+  box-shadow: 0 4px 12px rgba(16, 24, 40, 0.08);
+  border-color: #d0d5dd;
+}
+
+.headerRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.titleGroup {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.iconCircle {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: #e6f4f2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.cardTitle {
+  font-size: 15px;
+  font-weight: 700;
+  color: #101828;
+  margin: 0 0 2px;
+}
+
+.cardSubtitle {
+  font-size: 11.5px;
+  color: #667085;
+  margin: 0;
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.badgeTop {
+  font-size: 11px;
+  background: #f0fdf9;
+  border: 1px solid #bbf7d0;
+  color: #166534;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.btnRemove {
+  background: #ffffff;
+  border: 1px solid #eaecf0;
+  color: #98a2b3;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btnRemove:hover {
+  background: #fee4e2;
+  border-color: #fecdca;
+  color: #b42318;
+}
+
+.contentRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.donutContainer {
+  position: relative;
+  width: 160px;
+  height: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.donutSvg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.donutBgTrack {
+  stroke: #f2f4f7;
+}
+
+.donutSegment {
+  transition: stroke-width 0.2s ease;
+}
+
+.donutSegment:hover {
+  stroke-width: 24;
+}
+
+.donutCenterText {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.centerSmall {
+  font-size: 9.5px;
+  color: #667085;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.centerVal {
+  font-size: 12px;
+  font-weight: 800;
+  color: #005e54;
+}
+
+.legendList {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 200px;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 6px;
+  border-radius: 6px;
+  transition: background 0.12s ease;
+}
+
+.legendItem:hover {
+  background: #f9fafb;
+}
+
+.legendLeft {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.legendDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.legendName {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #344054;
+}
+
+.legendRight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.legendAmount {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #101828;
+}
+
+.legendPercent {
+  font-size: 11px;
+  color: #667085;
+  background: #f2f4f7;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-weight: 600;
+}

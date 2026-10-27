@@ -1,0 +1,103 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-inter: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --brand-core: #4f46e5;
+  --brand-shadow: #3c34c2;
+  --accent-core: #14b8a6;
+
+  /* ===== shadcn/Tailwind tokens (HSL channels), prefixed --sc- to avoid
+   * clashing with the shell's own structural CSS variables above. Consumed by
+   * tailwind.config.cjs. ===== */
+  --sc-radius: 0.75rem;
+  --sc-background: 240 20% 97%;
+  --sc-foreground: 222 39% 13%;
+  --sc-card: 0 0% 100%;
+  --sc-card-foreground: 222 39% 13%;
+  --sc-primary: 243 75% 59%;
+  --sc-primary-foreground: 0 0% 100%;
+  --sc-muted: 240 100% 97%;
+  --sc-muted-foreground: 220 9% 46%;
+  --sc-border: 220 13% 91%;
+  --sc-success: 152 76% 40%;
+  --sc-warning: 33 93% 50%;
+  --sc-danger: 4 86% 58%;
+
+  /* ===== Semantic theme tokens (light) ===== */
+  --app-bg: #f7f7f9;
+  --surface: #ffffff;
+  --surface-alt: #f5f6ff;
+  --surface-muted: #eef0ff;
+  --border: #e5e7eb;
+  --border-soft: #f0f0f0;
+
+  --text-strong: #181d27;
+  --text-body: #181d27;
+  --text-muted: #374151;
+  --text-faint: #6b7280;
+  --text-dim: #9ca3af;
+
+  --brand: #4f46e5;
+  --brand-contrast: #4f46e5;
+}
+
+/* ===== Dark theme overrides ===== */
+[data-theme="dark"] {
+  --app-bg: #0d1117;
+  --surface: #161b22;
+  --surface-alt: #1c2430;
+  --surface-muted: #1f2a44;
+  --border: #2a3340;
+  --border-soft: #232b36;
+
+  --text-strong: #e8edf4;
+  --text-body: #d4dbe4;
+  --text-muted: #aab4c0;
+  --text-faint: #8b96a4;
+  --text-dim: #6b7684;
+
+  --brand: #8b90f5;
+  --brand-contrast: #a5b4fc;
+
+  /* shadcn/Tailwind dark tokens */
+  --sc-background: 215 28% 7%;
+  --sc-foreground: 213 27% 87%;
+  --sc-card: 215 21% 11%;
+  --sc-card-foreground: 213 27% 87%;
+  --sc-primary: 238 85% 75%;
+  --sc-primary-foreground: 222 39% 13%;
+  --sc-muted: 222 33% 19%;
+  --sc-muted-foreground: 215 14% 65%;
+  --sc-border: 215 16% 20%;
+  --sc-success: 158 64% 52%;
+  --sc-warning: 33 93% 58%;
+  --sc-danger: 0 91% 71%;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  font-family: var(--font-inter);
+  color: var(--text-body);
+  background-color: var(--app-bg);
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.bodyContainer {
+  min-height: 100vh;
+}
+
+

@@ -1,0 +1,162 @@
+.userMenu {
+  position: relative;
+}
+
+.userMenuTrigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.35rem 0.6rem;
+  border: 1px solid transparent;
+  border-radius: 0.75rem;
+  background: transparent;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+.userMenuTrigger:hover {
+  background: var(--surface-muted, #f1f5f9);
+  border-color: var(--border, #e2e8f0);
+}
+
+.userMenuAvatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #008380, #005e5d);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.userMenuAvatarLg {
+  width: 40px;
+  height: 40px;
+  font-size: 0.8rem;
+}
+
+.userMenuInfo {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+  text-align: left;
+  min-width: 0;
+}
+.userMenuName {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-strong, #0f172a);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+}
+.userMenuEmail {
+  font-size: 0.7rem;
+  color: var(--text-faint, #64748b);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+}
+
+.userMenuChevron {
+  color: var(--text-faint, #94a3b8);
+  transition: transform 0.15s ease;
+  flex-shrink: 0;
+}
+.userMenuChevron.isOpen {
+  transform: rotate(180deg);
+}
+
+.userMenuDropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 240px;
+  background: var(--surface, #ffffff);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 0.75rem;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12);
+  padding: 0.4rem;
+  z-index: 50;
+  animation: userMenuIn 0.14s ease both;
+}
+@keyframes userMenuIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.userMenuHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 0.6rem 0.7rem;
+  border-bottom: 1px solid var(--border, #f1f5f9);
+  margin-bottom: 0.35rem;
+}
+
+.userMenuItem {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  padding: 0.6rem 0.6rem;
+  border: none;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: #dc2626;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.userMenuItem:hover:not(:disabled) {
+  background: #fef2f2;
+}
+.userMenuItem:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.userMenuSpin {
+  animation: userMenuSpin 0.7s linear infinite;
+}
+@keyframes userMenuSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Dark mode (plain CSS file — not a module, so no :global wrapper) */
+[data-theme="dark"] .userMenuTrigger:hover {
+  background: #1c2430;
+  border-color: #2a3340;
+}
+[data-theme="dark"] .userMenuName {
+  color: #e8edf4;
+}
+[data-theme="dark"] .userMenuEmail,
+[data-theme="dark"] .userMenuChevron {
+  color: #94a3b8;
+}
+[data-theme="dark"] .userMenuDropdown {
+  background: #161b22;
+  border-color: #2a3340;
+}
+[data-theme="dark"] .userMenuHeader {
+  border-color: #2a3340;
+}
+[data-theme="dark"] .userMenuItem:hover:not(:disabled) {
+  background: rgba(220, 38, 38, 0.12);
+}

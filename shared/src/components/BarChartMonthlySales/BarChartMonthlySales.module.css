@@ -1,0 +1,295 @@
+.chartCard {
+  background: #ffffff;
+  border: 1px solid #e4e7ec;
+  border-radius: 12px;
+  padding: 20px 22px;
+  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  box-sizing: border-box;
+  transition: all 0.2s ease;
+  border-color: #e1ebe9;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #ffffff 0%, #fcfefe 100%);
+}
+
+.chartCard:hover {
+  box-shadow: 0 10px 26px rgba(16, 55, 70, 0.1);
+  border-color: #c7ded9;
+}
+
+.headerRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.titleGroup {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.iconCircle {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: #e6f4f2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.cardTitle {
+  font-size: 15px;
+  font-weight: 700;
+  color: #101828;
+  margin: 0 0 2px;
+}
+
+.cardSubtitle {
+  font-size: 11.5px;
+  color: #667085;
+  margin: 0;
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.kpiPills {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.totalPill {
+  font-size: 11px;
+  background: #f0fdf9;
+  border: 1px solid #bbf7d0;
+  color: #166534;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.avgPill {
+  font-size: 11px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.btnRemove {
+  background: #ffffff;
+  border: 1px solid #eaecf0;
+  color: #98a2b3;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btnRemove:hover {
+  background: #fee4e2;
+  border-color: #fecdca;
+  color: #b42318;
+}
+
+/* Highlights */
+.highlightsBar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 12px;
+  background: #f9fafb;
+  border-radius: 8px;
+  font-size: 11.5px;
+  color: #344054;
+  flex-wrap: wrap;
+}
+
+.highlightTag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dotGreen {
+  width: 8px;
+  height: 8px;
+  background: #027a48;
+  border-radius: 50%;
+}
+
+.dotOrange {
+  width: 8px;
+  height: 8px;
+  background: #f59e0b;
+  border-radius: 50%;
+}
+
+.highlightGrowth {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #027a48;
+  margin-left: auto;
+}
+
+/* Chart Container */
+.chartContainer {
+  position: relative;
+  height: 220px;
+  width: 100%;
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+}
+
+.gridLines {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 26px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.gridLine {
+  border-bottom: 1px dashed #eaecf0;
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+}
+
+.gridLine span {
+  font-size: 9.5px;
+  color: #98a2b3;
+  transform: translateY(-50%);
+  background: #ffffff;
+  padding-right: 4px;
+}
+
+.barsFlex {
+  position: relative;
+  z-index: 2;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding-left: 45px;
+  gap: 8px;
+}
+
+.barCol {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  justify-content: flex-end;
+  position: relative;
+  cursor: pointer;
+}
+
+.barValText {
+  font-size: 10px;
+  font-weight: 700;
+  color: #667085;
+  margin-bottom: 4px;
+}
+
+.barValPeak {
+  color: #005e54;
+  font-weight: 800;
+}
+
+.barTrack {
+  width: 100%;
+  max-width: 38px;
+  height: calc(100% - 46px);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.barFill {
+  width: 100%;
+  border-radius: 6px 6px 0 0;
+  background: linear-gradient(180deg, #007d79 0%, #005e54 100%);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 4px rgba(0, 94, 84, 0.15);
+}
+
+.barCol:hover .barFill {
+  background: linear-gradient(180deg, #0284c7 0%, #005e54 100%);
+  box-shadow: 0 4px 8px rgba(0, 94, 84, 0.28);
+  transform: scaleY(1.02);
+}
+
+.barFillPeak {
+  background: linear-gradient(180deg, #0284c7 0%, #007d79 100%);
+}
+
+.barLabel {
+  font-size: 10.5px;
+  color: #667085;
+  margin-top: 6px;
+  font-weight: 600;
+}
+
+.barLabelPeak {
+  color: #005e54;
+  font-weight: 800;
+}
+
+/* Tooltip Popup */
+.tooltipPopup {
+  position: absolute;
+  bottom: calc(100% - 15px);
+  background: #1d2939;
+  color: #ffffff;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 10.5px;
+  white-space: nowrap;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  z-index: 20;
+  pointer-events: none;
+  animation: fadeIn 0.15s ease-out;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tooltipPopup strong {
+  color: #38bdf8;
+  font-size: 11px;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
