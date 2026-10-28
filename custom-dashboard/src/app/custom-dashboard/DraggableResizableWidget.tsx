@@ -17,6 +17,12 @@ export interface DraggableResizableWidgetProps {
   onPositionChange?: (id: string, x: number, y: number) => void;
   onRemove?: () => void;
   highlighted?: boolean;
+  /** RBAC: viewer mode — disables drag/resize/presets and hides remove. */
+  readOnly?: boolean;
+  /** True when this widget is the one focused for the chatbot context. */
+  focused?: boolean;
+  /** Called when the widget is clicked (not dragged) to focus it. */
+  onFocusWidget?: () => void;
   children: React.ReactNode;
 }
 
@@ -33,6 +39,9 @@ export default function DraggableResizableWidget({
   onPositionChange,
   onRemove,
   highlighted = false,
+  readOnly = false,
+  focused = false,
+  onFocusWidget,
   children,
 }: DraggableResizableWidgetProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -74,6 +83,7 @@ export default function DraggableResizableWidget({
   // Handle Free Drag & Move anywhere on canvas
   const handleDragStart = useCallback(
     (e: React.MouseEvent) => {
+      if (readOnly) return; // viewer mode: no moving
       // Don't drag if clicking buttons, inputs, or resize handles
       const target = e.target as HTMLElement;
       if (
@@ -139,12 +149,13 @@ export default function DraggableResizableWidget({
       window.addEventListener("mousemove", onMouseMove);
       window.addEventListener("mouseup", onMouseUp);
     },
-    [id, posX, posY, onPositionChange]
+    [id, posX, posY, onPositionChange, readOnly]
   );
 
   // Handle Free Resize (Horizontal, Vertical, and Both)
   const handleResizeStart = useCallback(
     (e: React.MouseEvent, direction: "horizontal" | "vertical" | "both") => {
+      if (readOnly) return; // viewer mode: no resizing
       e.preventDefault();
       e.stopPropagation();
 
@@ -210,7 +221,7 @@ export default function DraggableResizableWidget({
       window.addEventListener("mousemove", onMouseMove);
       window.addEventListener("mouseup", onMouseUp);
     },
-    [id, posX, onResize]
+    [id, posX, onResize, readOnly]
   );
 
   // Quick preset sizes
@@ -251,9 +262,16 @@ export default function DraggableResizableWidget({
   return (
     <div
       ref={containerRef}
-      className={`${styles.widgetWrapper} ${isMoving ? styles.isMoving : ""} ${highlighted ? styles.highlighted : ""}`}
+      className={`${styles.widgetWrapper} ${isMoving ? styles.isMoving : ""} ${highlighted ? styles.highlighted : ""} ${focused ? styles.focused : ""}`}
       data-widget-id={id}
       data-widget-type={type}
+      onClick={(e) => {
+        // Don't focus when the click is on a control/button or right after a drag.
+        if (isMoving || isResizing) return;
+        const target = e.target as HTMLElement;
+        if (target.closest("button")) return;
+        onFocusWidget?.();
+      }}
       style={{
         position: "absolute",
         left: `${posX}px`,
@@ -263,6 +281,7 @@ export default function DraggableResizableWidget({
         minWidth: 0,
         minHeight: 0,
         zIndex: isMoving || isResizing ? 40 : 1,
+        cursor: onFocusWidget ? "pointer" : undefined,
       }}
     >
       {/* Top Drag & Control Bar - Click and drag anywhere here to move freely */}
@@ -277,7 +296,8 @@ export default function DraggableResizableWidget({
           <span className={styles.freeDragHint}>• Geser Bebas</span>
         </div>
 
-        {/* Dimension Quick Presets & Controls */}
+        {/* Dimension Quick Presets & Controls (hidden for viewers) */}
+        {!readOnly && (
         <div className={styles.dimensionPresets}>
           <button
             type="button"
@@ -345,39 +365,40 @@ export default function DraggableResizableWidget({
             </button>
           )}
         </div>
+        )}
       </div>
 
       {/* Widget Content Body */}
       <div className={styles.widgetInnerContent}>{children}</div>
 
-      {/* Resize Handle: Right (Horizontal only) */}
-      <div
-        className={`${styles.resizeHandleRight} ${
-          isResizing === "horizontal" ? styles.isResizingHorizontal : ""
-        }`}
-        onMouseDown={(e) => handleResizeStart(e, "horizontal")}
-        title="Tarik ke kiri/kanan untuk mengubah lebar secara bebas"
-      />
-
-      {/* Resize Handle: Bottom (Vertical only) */}
-      <div
-        className={`${styles.resizeHandleBottom} ${
-          isResizing === "vertical" ? styles.isResizingVertical : ""
-        }`}
-        onMouseDown={(e) => handleResizeStart(e, "vertical")}
-        title="Tarik ke atas/bawah untuk mengubah tinggi secara bebas"
-      />
-
-      {/* Resize Handle: Bottom-Right Corner (2D Both Horizontal & Vertical) */}
-      <div
-        className={`${styles.resizeHandleCorner} ${
-          isResizing === "both" ? styles.isResizingBoth : ""
-        }`}
-        onMouseDown={(e) => handleResizeStart(e, "both")}
-        title="Tarik sudut ini untuk memperbesar/memperkecil horizontal & vertikal secara bebas"
-      >
-        <div className={styles.cornerLines} />
-      </div>
+      {/* Resize handles (hidden for viewers) */}
+      {!readOnly && (
+        <>
+          <div
+            className={`${styles.resizeHandleRight} ${
+              isResizing === "horizontal" ? styles.isResizingHorizontal : ""
+            }`}
+            onMouseDown={(e) => handleResizeStart(e, "horizontal")}
+            title="Tarik ke kiri/kanan untuk mengubah lebar secara bebas"
+          />
+          <div
+            className={`${styles.resizeHandleBottom} ${
+              isResizing === "vertical" ? styles.isResizingVertical : ""
+            }`}
+            onMouseDown={(e) => handleResizeStart(e, "vertical")}
+            title="Tarik ke atas/bawah untuk mengubah tinggi secara bebas"
+          />
+          <div
+            className={`${styles.resizeHandleCorner} ${
+              isResizing === "both" ? styles.isResizingBoth : ""
+            }`}
+            onMouseDown={(e) => handleResizeStart(e, "both")}
+            title="Tarik sudut ini untuk memperbesar/memperkecil horizontal & vertikal secara bebas"
+          >
+            <div className={styles.cornerLines} />
+          </div>
+        </>
+      )}
 
       {/* Live Size Tooltip while dragging resize handles */}
       {livePixelSize && (

@@ -272,18 +272,20 @@ export async function addDashboardMember(params: {
   const connection = await pool.getConnection();
   try {
     await connection.execute(
+      // Note: "BY" is a reserved word in Oracle, so the bind var is :actor
+      // (not :by) to avoid ORA-01745 (invalid host/bind variable name).
       `MERGE INTO DASHBOARD_MEMBER t
          USING (SELECT :d DASHBOARD_ID, :t TENANT, :u USERNAME FROM DUAL) s
          ON (t.DASHBOARD_ID = s.DASHBOARD_ID AND t.TENANT = s.TENANT AND t.USERNAME = s.USERNAME)
        WHEN MATCHED THEN
          UPDATE SET ROLE_ACCESS = :r, UNIT = :unit, IS_DELETED = 0,
-                    UPDATED_BY = :by, UPDATED_TIME = SYSTIMESTAMP
+                    UPDATED_BY = :actor, UPDATED_TIME = SYSTIMESTAMP
        WHEN NOT MATCHED THEN
          INSERT (DASHBOARD_ID, TENANT, USERNAME, ROLE_ACCESS, UNIT, CREATED_BY)
-         VALUES (:d, :t, :u, :r, :unit, :by)`,
+         VALUES (:d, :t, :u, :r, :unit, :actor)`,
       {
         d: params.dashboardId, t: params.tenant, u: params.username,
-        r: params.roleAccess, unit: params.unit ?? null, by: params.createdBy ?? "APP",
+        r: params.roleAccess, unit: params.unit ?? null, actor: params.createdBy ?? "APP",
       },
       { autoCommit: true },
     );
@@ -307,6 +309,37 @@ export async function removeDashboardMember(
       { id, t: tenant },
       { autoCommit: true },
     );
+  } finally {
+    await connection.close();
+  }
+}
+
+// =====================================================================
+// Dashboard access resolution (RBAC per-user dashboard access).
+// A user may only see dashboards where they are a member; the member's
+// ROLE_ACCESS (viewer/editor/pengelola) governs what actions are allowed.
+// =====================================================================
+
+/** Map of dashboardId -> roleAccess for a user within a tenant. */
+export async function listAccessibleDashboards(
+  username: string,
+  tenant: "fashion" | "kemenkeu",
+): Promise<Record<string, string>> {
+  const pool = await getAuthPool();
+  const connection = await pool.getConnection();
+  try {
+    const result = await connection.execute<{ DASHBOARD_ID: string; ROLE_ACCESS: string }>(
+      `SELECT DASHBOARD_ID, ROLE_ACCESS
+         FROM DASHBOARD_MEMBER
+        WHERE USERNAME = :u AND TENANT = :t AND IS_DELETED = 0`,
+      { u: username, t: tenant },
+      { outFormat: oracledb.OUT_FORMAT_OBJECT },
+    );
+    const map: Record<string, string> = {};
+    for (const row of result.rows || []) {
+      map[String(row.DASHBOARD_ID)] = row.ROLE_ACCESS;
+    }
+    return map;
   } finally {
     await connection.close();
   }

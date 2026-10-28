@@ -1,4 +1,4 @@
-import React, { useId, useState } from "react";
+import React, { useEffect, useId, useState } from "react";
 import ChartValueDetail, { ChartHoverTooltip, chartRootProps, selectableProps, toggleIndex, useChartHover } from "../ChartValueDetail/ChartValueDetail";
 import styles from "./AnalyticsVisualizations.module.css";
 
@@ -67,9 +67,25 @@ export interface AnalyticsChartProps {
   metricLabel?: string;
   centerLabel?: string;
   data?: unknown;
+  /** Play a one-time entrance animation on mount when true. */
+  animateOnce?: boolean;
 }
 
-export function PieChart({ title, subtitle, metricLabel = "Nilai", centerLabel, data }: AnalyticsChartProps) {
+/** Shared hook: returns true once the component has mounted (one rAF later),
+ *  used to trigger CSS entrance transitions. When animation is disabled it is
+ *  true immediately so nothing animates. */
+function useGrown(animateOnce: boolean): boolean {
+  const [grown, setGrown] = useState(!animateOnce);
+  useEffect(() => {
+    if (!animateOnce) { setGrown(true); return; }
+    setGrown(false);
+    const r = requestAnimationFrame(() => setGrown(true));
+    return () => cancelAnimationFrame(r);
+  }, [animateOnce]);
+  return grown;
+}
+
+export function PieChart({ title, subtitle, metricLabel = "Nilai", centerLabel, data, animateOnce = false }: AnalyticsChartProps) {
   const [selected, setSelected] = useState<number | null>(null);
   const { hover, hoverHandlers } = useChartHover();
   const points = pointsOf(data).filter((point) => point.value > 0);
@@ -82,6 +98,38 @@ export function PieChart({ title, subtitle, metricLabel = "Nilai", centerLabel, 
     const radians = ((angle - 90) * Math.PI) / 180;
     return { x: cx + radius * Math.cos(radians), y: cy + radius * Math.sin(radians) };
   };
+
+  // Clockwise sweep reveal: a wedge clip-path opens from 0° to 360° so the pie
+  // appears to "spin" into a full circle. Driven by requestAnimationFrame.
+  const clipId = `pie-sweep-${useId().replace(/:/g, "")}`;
+  const [sweep, setSweep] = useState<number>(animateOnce ? 0 : 360);
+  useEffect(() => {
+    if (!animateOnce) { setSweep(360); return; }
+    setSweep(0);
+    const duration = 1000;
+    const start = performance.now();
+    let raf = 0;
+    const tick = (now: number) => {
+      const p = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - p, 3); // easeOutCubic
+      setSweep(eased * 360);
+      if (p < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [animateOnce]);
+
+  // Build the wedge path (from top, clockwise) covering `sweep` degrees.
+  const sweepClipPath = (() => {
+    if (sweep >= 359.999) return null; // full circle -> no clipping
+    if (sweep <= 0.001) return `M ${cx} ${cy} Z`; // nothing visible yet
+    const r = radius + 6; // slightly larger so slice edges aren't cut
+    const endRad = ((sweep - 90) * Math.PI) / 180;
+    const endPt = { x: cx + r * Math.cos(endRad), y: cy + r * Math.sin(endRad) };
+    const startR = { x: cx + r * Math.cos((-90) * Math.PI / 180), y: cy + r * Math.sin((-90) * Math.PI / 180) };
+    return `M ${cx} ${cy} L ${startR.x} ${startR.y} A ${r} ${r} 0 ${sweep > 180 ? 1 : 0} 1 ${endPt.x} ${endPt.y} Z`;
+  })();
+
   const chosen = selected !== null ? points[selected] : undefined;
   const dim = (index: number) => (selected !== null && selected !== index ? 0.45 : 1);
   return <article className={styles.card} {...chartRootProps}>
@@ -89,6 +137,8 @@ export function PieChart({ title, subtitle, metricLabel = "Nilai", centerLabel, 
     {!points.length ? <Empty /> : <div className={styles.pieLayout}>
       <div className={styles.pieWrap}>
         <svg viewBox="0 0 220 220" role="img" aria-label={title}>
+          {sweepClipPath && <defs><clipPath id={clipId}><path d={sweepClipPath} /></clipPath></defs>}
+          <g clipPath={sweepClipPath ? `url(#${clipId})` : undefined}>
           {points.map((point, index) => {
             const startAngle = angleSoFar;
             const slice = point.value / total * 360;
@@ -106,6 +156,7 @@ export function PieChart({ title, subtitle, metricLabel = "Nilai", centerLabel, 
             const path = `M ${cx} ${cy} L ${start.x} ${start.y} A ${radius} ${radius} 0 ${slice > 180 ? 1 : 0} 1 ${end.x} ${end.y} Z`;
             return <path key={`${point.label}-${index}`} d={path} fill={COLORS[index % COLORS.length]} stroke={selected === index ? "#172b4d" : "white"} strokeWidth={selected === index ? 3 : 2} opacity={dim(index)} {...interact} {...tip} />;
           })}
+          </g>
         </svg>
       </div>
       <div className={styles.legend}>
@@ -144,9 +195,10 @@ export function PieChart({ title, subtitle, metricLabel = "Nilai", centerLabel, 
   </article>;
 }
 
-export function AreaChart({ title, subtitle, metricLabel = "Nilai", data }: AnalyticsChartProps) {
+export function AreaChart({ title, subtitle, metricLabel = "Nilai", data, animateOnce = false }: AnalyticsChartProps) {
   const [selected, setSelected] = useState<number | null>(null);
   const { hover, hoverHandlers } = useChartHover();
+  const grown = useGrown(animateOnce);
   const points = pointsOf(data);
   const gradientId = `area-${useId().replace(/:/g, "")}`;
   const width = 800;
@@ -171,8 +223,21 @@ export function AreaChart({ title, subtitle, metricLabel = "Nilai", data }: Anal
         const y = top + chartHeight - fraction * chartHeight;
         return <g key={fraction}><line x1={left} y1={y} x2={left + chartWidth} y2={y} stroke="#e8edf2" strokeDasharray="4 5"/><text x={left - 9} y={y + 4} textAnchor="end" className={styles.axisLabel}>{format(max * fraction, metricLabel)}</text></g>;
       })}
-      <polygon points={area} fill={`url(#${gradientId})`} />
-      <polyline points={line} fill="none" stroke="#4f46e5" strokeWidth="3.5" strokeLinejoin="round" strokeLinecap="round" />
+      <polygon points={area} fill={`url(#${gradientId})`} style={{ opacity: grown ? 1 : 0, transition: "opacity 0.9s ease 0.3s" }} />
+      <polyline
+        points={line}
+        fill="none"
+        stroke="#4f46e5"
+        strokeWidth="3.5"
+        strokeLinejoin="round"
+        strokeLinecap="round"
+        pathLength={1}
+        style={{
+          strokeDasharray: 1,
+          strokeDashoffset: grown ? 0 : 1,
+          transition: "stroke-dashoffset 1.1s ease",
+        }}
+      />
       {chosen && <line x1={chosen.px} y1={top} x2={chosen.px} y2={top + chartHeight} stroke="#4f46e5" strokeDasharray="3 3" strokeWidth="1.4" />}
       {coords.map((point, index) => {
         const interact = selectableProps(`${point.label}: ${format(point.value, metricLabel)}`, selected === index, () => setSelected((current) => toggleIndex(current, index)));
@@ -200,9 +265,10 @@ export function AreaChart({ title, subtitle, metricLabel = "Nilai", data }: Anal
   </article>;
 }
 
-export function ScatterChart({ title, subtitle, metricLabel = "Nilai", centerLabel = "Kategori", data }: AnalyticsChartProps) {
+export function ScatterChart({ title, subtitle, metricLabel = "Nilai", centerLabel = "Kategori", data, animateOnce = false }: AnalyticsChartProps) {
   const [selected, setSelected] = useState<number | null>(null);
   const { hover, hoverHandlers } = useChartHover();
+  const grown = useGrown(animateOnce);
   const points = pointsOf(data);
   const width = 800;
   const height = 300;
@@ -239,7 +305,12 @@ export function ScatterChart({ title, subtitle, metricLabel = "Nilai", centerLab
         const x = left + ((point.x ?? 0) - minX) / rangeX * chartWidth;
         const y = top + chartHeight - ((point.y ?? 0) - minY) / rangeY * chartHeight;
         const interact = selectableProps(`${point.label}: ${format(point.y ?? 0, metricLabel)}`, selected === index, () => setSelected((current) => toggleIndex(current, index)));
-        return <g key={`${point.label}-${index}`}>
+        return <g key={`${point.label}-${index}`} style={{
+          transform: grown ? "scale(1)" : "scale(0)",
+          transformOrigin: `${x}px ${y}px`,
+          transition: "transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)",
+          transitionDelay: animateOnce ? `${Math.min(index * 30, 600)}ms` : "0ms",
+        }}>
           <circle cx={x} cy={y} r={selected === index ? 9 : 6} fill={COLORS[index % COLORS.length]} fillOpacity=".85" stroke={selected === index ? "#172b4d" : "white"} strokeWidth="2" />
           <circle
             cx={x}

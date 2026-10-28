@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { TrendingUp, X } from "lucide-react";
 import ChartValueDetail, { ChartHoverTooltip, chartRootProps, selectableProps, toggleIndex, useChartHover } from "../ChartValueDetail/ChartValueDetail";
 import styles from "./LineChartMonthlySales.module.css";
@@ -33,6 +33,8 @@ export interface LineChartMonthlySalesProps {
     lowestMonth?: string;
   };
   onRemove?: () => void;
+  /** Play a one-time line-draw animation on mount when true. */
+  animateOnce?: boolean;
 }
 
 function readField(row: CategoryLinePoint, ...names: string[]): unknown {
@@ -57,10 +59,18 @@ export default function LineChartMonthlySales({
   metricLabel = "Penjualan",
   summary,
   onRemove,
+  animateOnce = false,
 }: LineChartMonthlySalesProps) {
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
   const { hover, hoverHandlers } = useChartHover();
+  const [grown, setGrown] = useState(!animateOnce);
+  useEffect(() => {
+    if (!animateOnce) { setGrown(true); return; }
+    setGrown(false);
+    const r = requestAnimationFrame(() => setGrown(true));
+    return () => cancelAnimationFrame(r);
+  }, [animateOnce]);
 
   const isCategoryChart = chartMode === "category";
   const points: MonthlySalesPoint[] = isCategoryChart
@@ -219,7 +229,7 @@ export default function LineChartMonthlySales({
           })}
 
           {/* Area fill */}
-          {areaD && <path d={areaD} fill="url(#sharedLineAreaGrad)" />}
+          {areaD && <path d={areaD} fill="url(#sharedLineAreaGrad)" style={{ opacity: grown ? 1 : 0, transition: "opacity 0.9s ease 0.3s" }} />}
 
           {/* Smooth line */}
           {pathD && (
@@ -230,6 +240,12 @@ export default function LineChartMonthlySales({
               strokeWidth="3.2"
               strokeLinecap="round"
               strokeLinejoin="round"
+              pathLength={1}
+              style={{
+                strokeDasharray: 1,
+                strokeDashoffset: grown ? 0 : 1,
+                transition: "stroke-dashoffset 1.1s ease",
+              }}
             />
           )}
 

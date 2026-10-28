@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { TrendingUp, X } from "lucide-react";
 import ChartValueDetail, { ChartHoverTooltip, chartRootProps, toggleIndex, useChartHover } from "../ChartValueDetail/ChartValueDetail";
 import styles from "./BarChartMonthlySales.module.css";
@@ -22,6 +22,8 @@ export interface BarChartMonthlySalesProps {
     lowestMonth?: string;
   };
   onRemove?: () => void;
+  /** Play a one-time grow-up animation on mount when true. */
+  animateOnce?: boolean;
 }
 
 function formatRupiahJt(val: number): string {
@@ -39,10 +41,19 @@ export default function BarChartMonthlySales({
   data = [],
   summary,
   onRemove,
+  animateOnce = false,
 }: BarChartMonthlySalesProps) {
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
   const { hover, hoverHandlers } = useChartHover();
+  // Entrance grow: start at 0 height when animating, flip to full after mount.
+  const [grown, setGrown] = useState(!animateOnce);
+  useEffect(() => {
+    if (!animateOnce) { setGrown(true); return; }
+    setGrown(false);
+    const r = requestAnimationFrame(() => setGrown(true));
+    return () => cancelAnimationFrame(r);
+  }, [animateOnce]);
 
   const points = data;
   const chosen = selectedIdx !== null ? points[selectedIdx] : undefined;
@@ -163,7 +174,11 @@ export default function BarChartMonthlySales({
                 <div className={styles.barTrack}>
                   <div
                     className={`${styles.barFill} ${isPeak ? styles.barFillPeak : ""}`}
-                    style={{ height: `${heightPercent}%` }}
+                    style={{
+                      height: `${grown ? heightPercent : 0}%`,
+                      transition: "height 0.9s cubic-bezier(0.22, 1, 0.36, 1)",
+                      transitionDelay: animateOnce ? `${idx * 60}ms` : "0ms",
+                    }}
                   />
                 </div>
 

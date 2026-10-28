@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import ChartValueDetail, { ChartHoverTooltip, chartRootProps, selectableProps, toggleIndex, useChartHover } from "../ChartValueDetail/ChartValueDetail";
 import styles from "./DonutProductChart.module.css";
@@ -18,6 +18,8 @@ export interface DonutProductChartProps {
   metricLabel?: string;
   centerLabel?: string;
   onRemove?: () => void;
+  /** Play a one-time grow/rotate-in animation on mount when true. */
+  animateOnce?: boolean;
 }
 
 function formatValue(val: number, metricLabel: string): string {
@@ -34,9 +36,17 @@ export default function DonutProductChart({
   metricLabel = "penjualan",
   centerLabel = "PRODUK",
   onRemove,
+  animateOnce = false,
 }: DonutProductChartProps) {
   const [selected, setSelected] = useState<number | null>(null);
   const { hover, hoverHandlers } = useChartHover();
+  const [grown, setGrown] = useState(!animateOnce);
+  useEffect(() => {
+    if (!animateOnce) { setGrown(true); return; }
+    setGrown(false);
+    const r = requestAnimationFrame(() => setGrown(true));
+    return () => cancelAnimationFrame(r);
+  }, [animateOnce]);
   const tipFor = (item: ProductDonutItem) =>
     hoverHandlers({
       title: item.name,
@@ -105,6 +115,12 @@ export default function DonutProductChart({
               strokeWidth="20"
               fill="transparent"
             />
+            <g style={{
+              transform: grown ? "rotate(0deg) scale(1)" : "rotate(-90deg) scale(0.4)",
+              transformOrigin: "80px 80px",
+              opacity: grown ? 1 : 0,
+              transition: "transform 0.9s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.6s ease",
+            }}>
             {items.map((item, index) => {
               const strokeLength = (item.percent / 100) * circumference;
               const strokeDasharray = `${strokeLength} ${circumference - strokeLength}`;
@@ -134,6 +150,7 @@ export default function DonutProductChart({
                 />
               );
             })}
+            </g>
           </svg>
           <div className={styles.donutCenterText}>
             <span className={styles.centerSmall}>PROPORSI</span>

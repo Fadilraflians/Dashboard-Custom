@@ -3074,3 +3074,73 @@
   font-weight: 650;
   text-transform: capitalize;
 }
+
+/* Inline role editor in the member list */
+.dashboardMemberRoleSelect {
+  margin-left: auto;
+  padding: 5px 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #1e293b;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Focused-widget context chip above the chatbot composer */
+.chatbotContextChip {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0 0 8px;
+  padding: 8px 10px;
+  border: 1px solid #b9e3dd;
+  border-radius: 10px;
+  background: #ecfaf7;
+}
+.chatbotContextIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  background: #0b8077;
+  color: #ffffff;
+  flex-shrink: 0;
+}
+.chatbotContextText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.25;
+}
+.chatbotContextText strong {
+  font-size: 12.5px;
+  color: #0b5248;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.chatbotContextText small { font-size: 11px; color: #4b7e76; }
+.chatbotContextClose {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #4b7e76;
+  cursor: pointer;
+}
+.chatbotContextClose:hover { background: #d7f0eb; color: #0b5248; }
+
+/* Save button row for the editable dashboard info (Step 1) */
+.dashboardConfigInfoActions {
+  display: flex;
+  justify-content: flex-end;
+  grid-column: 1 / -1;
+}

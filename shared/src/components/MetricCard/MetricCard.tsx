@@ -1,4 +1,5 @@
 import React from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ArrowLeftRight,
   BarChart3,
@@ -70,6 +71,65 @@ function isMoneyTitle(title: string): boolean {
   return /penjualan|pendapatan|omzet|revenue|sales|pembayaran|harga|subtotal|diskon|ongkir|ongkos|profit|laba|dana/i.test(title);
 }
 
+/**
+ * Count-up animation for a numeric display. Given the final formatted string
+ * and the raw number, it animates from 0 to the number once (on mount when
+ * `enabled`), formatting every frame so prefixes/suffixes (Rp, %, "unit") and
+ * the number style are preserved. Returns the string to render.
+ */
+function useCountUp(finalText: string, rawValue: number | null, enabled: boolean): string {
+  const [text, setText] = useState(finalText);
+  const frameRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    // Nothing to animate: no number, or disabled -> show the final text as-is.
+    if (!enabled || rawValue == null || !Number.isFinite(rawValue)) {
+      setText(finalText);
+      return;
+    }
+    // Split the final text around the numeric part so we can rebuild each frame
+    // keeping the prefix (e.g. "Rp ") and suffix (e.g. "%").
+    const match = finalText.match(/^(\D*)([\d.,]+)(.*)$/s);
+    if (!match) {
+      setText(finalText);
+      return;
+    }
+    const [, prefix, numStr, suffix] = match;
+    // Detect decimals from the final formatted number (id-ID uses "," decimal).
+    const decimals = (() => {
+      const dec = numStr.split(",")[1];
+      return dec ? Math.min(dec.replace(/\D/g, "").length, 2) : 0;
+    })();
+    const fmt = new Intl.NumberFormat("id-ID", {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
+    });
+
+    const duration = 1200;
+    const start = performance.now();
+    const tick = (now: number) => {
+      const p = Math.min(1, (now - start) / duration);
+      // easeOutCubic for a natural "settling" feel.
+      const eased = 1 - Math.pow(1 - p, 3);
+      const current = rawValue * eased;
+      setText(`${prefix}${fmt.format(current)}${suffix}`);
+      if (p < 1) {
+        frameRef.current = requestAnimationFrame(tick);
+      } else {
+        setText(finalText); // snap to the exact final formatting
+      }
+    };
+    frameRef.current = requestAnimationFrame(tick);
+    return () => {
+      if (frameRef.current != null) cancelAnimationFrame(frameRef.current);
+    };
+    // Re-run only when the target or enablement changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [finalText, rawValue, enabled]);
+
+  return text;
+}
+
 export interface MetricCardProps {
   title?: string;
   subtitle?: string;
@@ -83,6 +143,8 @@ export interface MetricCardProps {
   badge?: string;
   delta?: number;
   onRemove?: () => void;
+  /** Play a one-time count-up animation on mount when true. */
+  animateOnce?: boolean;
 }
 
 export default function MetricCard({
@@ -94,6 +156,7 @@ export default function MetricCard({
   badge,
   delta,
   onRemove,
+  animateOnce = false,
 }: MetricCardProps) {
   const Icon = resolveIcon(icon, title);
   const up = (delta ?? 0) >= 0;
@@ -106,6 +169,16 @@ export default function MetricCard({
   } else if (typeof value === "string" && value.trim() !== "") {
     displayValue = value;
   }
+
+  // Raw number for the count-up: prefer numeric `value`; otherwise parse the
+  // digits out of the display string (handles "Rp 5.677.025.000", "2,97", "0,49%").
+  const rawForCountUp: number | null = (() => {
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+    const digits = displayValue.replace(/[^\d.,-]/g, "").replace(/\./g, "").replace(",", ".");
+    const n = parseFloat(digits);
+    return Number.isFinite(n) ? n : null;
+  })();
+  const animatedValue = useCountUp(displayValue, rawForCountUp, animateOnce);
 
   return (
     <article className={styles.cardContainer} aria-label={title}>
@@ -141,7 +214,7 @@ export default function MetricCard({
       </div>
 
       <p className={styles.cardLabel}>{title}</p>
-      <div className={styles.cardValue}>{displayValue}</div>
+      <div className={styles.cardValue}>{animatedValue}</div>
       {subtitle && <p className={styles.cardSubtitle}>{subtitle}</p>}
     </article>
   );

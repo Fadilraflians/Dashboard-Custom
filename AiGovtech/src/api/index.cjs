@@ -157,6 +157,42 @@ function getAuthorizedTenant(request) {
   return tenant === "fashion" || tenant === "kemenkeu" ? tenant : null;
 }
 
+// RBAC context injected by the shell gateway (per-user dashboard access).
+//   isAdmin: admin bypasses all filtering/enforcement.
+//   access : { dashboardId: roleAccess } the user may see (viewer/editor/pengelola).
+// When the headers are absent (e.g. direct calls or IFP mode), default to a
+// permissive context so existing behaviour is unchanged.
+function getRequestAccess(request) {
+  const isAdminHeader = request.get("x-aigovtech-isadmin");
+  // No RBAC header at all -> legacy/permissive (treat as full access).
+  if (isAdminHeader == null) {
+    return { rbac: false, isAdmin: true, username: "", access: {} };
+  }
+  let access = {};
+  try {
+    access = JSON.parse(request.get("x-aigovtech-access") || "{}") || {};
+  } catch {
+    access = {};
+  }
+  return {
+    rbac: true,
+    isAdmin: isAdminHeader === "true",
+    username: request.get("x-aigovtech-username") || "",
+    access,
+  };
+}
+
+/** Role rank for comparing access levels. */
+const ROLE_RANK = { viewer: 1, editor: 2, pengelola: 3, admin: 4 };
+
+/** Whether the request may perform an action needing at least `minRole`. */
+function accessAllowsAction(ctx, dashboardId, minRole) {
+  if (!ctx.rbac || ctx.isAdmin) return true; // legacy or admin -> allowed
+  const role = ctx.access[String(dashboardId)];
+  if (!role) return false;
+  return (ROLE_RANK[role] || 0) >= (ROLE_RANK[minRole] || 0);
+}
+
 function modelEndpoint() {
   const ollamaBaseUrl = (
     process.env.OLLAMA_BASE_URL || "http://127.0.0.1:11434"
@@ -1836,8 +1872,11 @@ app.get("/widgets", async (request, response) => {
       [],
       { outFormat: oracledb.OUT_FORMAT_OBJECT },
     );
+    const access = getRequestAccess(request);
     const dashboardsById = new Map();
     for (const row of result.rows || []) {
+      // RBAC: skip widgets of dashboards the user cannot access.
+      if (access.rbac && !access.isAdmin && !access.access[String(row.DASHBOARD_ID)]) continue;
       const [data, layout] = await Promise.all([
         parseJsonClob(row.DATA, {}),
         parseJsonClob(row.LAYOUT, {}),
@@ -1903,10 +1942,21 @@ async function ensureDashboardTables(tenant, connection) {
         await connection.execute(`CREATE TABLE ${dashboardsTable} (
           DASHBOARD_ID NUMBER(12) NOT NULL PRIMARY KEY,
           NAME VARCHAR2(255) NOT NULL,
+          DESCRIPTION VARCHAR2(2000),
           SORT_ORDER NUMBER(6) DEFAULT 0 NOT NULL,
           CREATED_AT TIMESTAMP DEFAULT SYSTIMESTAMP NOT NULL,
           UPDATED_AT TIMESTAMP DEFAULT SYSTIMESTAMP NOT NULL
         )`);
+      } else {
+        // Existing table (pre-DESCRIPTION): add the column once if missing.
+        const col = await connection.execute(
+          `SELECT COUNT(*) AS N FROM USER_TAB_COLUMNS WHERE TABLE_NAME = :t AND COLUMN_NAME = 'DESCRIPTION'`,
+          { t: dashboardsTable },
+          { outFormat: oracledb.OUT_FORMAT_OBJECT },
+        );
+        if (Number(col.rows?.[0]?.N) === 0) {
+          await connection.execute(`ALTER TABLE ${dashboardsTable} ADD (DESCRIPTION VARCHAR2(2000))`);
+        }
       }
       if (!(await tableExists(connection, dashboardPrefsTable))) {
         await connection.execute(`CREATE TABLE ${dashboardPrefsTable} (
@@ -1938,7 +1988,7 @@ app.get("/dashboards", async (request, response) => {
     connection = await pool.getConnection();
     await ensureDashboardTables(tenant, connection);
     const listResult = await connection.execute(
-      `SELECT DASHBOARD_ID, NAME, SORT_ORDER FROM ${dashboardsTable} ORDER BY SORT_ORDER, DASHBOARD_ID`,
+      `SELECT DASHBOARD_ID, NAME, DESCRIPTION, SORT_ORDER FROM ${dashboardsTable} ORDER BY SORT_ORDER, DASHBOARD_ID`,
       [],
       { outFormat: oracledb.OUT_FORMAT_OBJECT },
     );
@@ -1948,12 +1998,18 @@ app.get("/dashboards", async (request, response) => {
       { outFormat: oracledb.OUT_FORMAT_OBJECT },
     );
     const pref = prefResult.rows?.[0] || {};
+    const access = getRequestAccess(request);
+    const visible = (listResult.rows || []).filter((row) =>
+      !access.rbac || access.isAdmin || access.access[String(row.DASHBOARD_ID)],
+    );
     return response.json({
       success: true,
-      dashboards: (listResult.rows || []).map((row) => ({
+      dashboards: visible.map((row) => ({
         dashboardId: String(row.DASHBOARD_ID),
         name: row.NAME,
+        description: row.DESCRIPTION ?? null,
         sortOrder: Number(row.SORT_ORDER),
+        roleAccess: access.isAdmin ? "admin" : (access.access[String(row.DASHBOARD_ID)] || null),
       })),
       preferences: {
         selectedDashboardId: pref.SELECTED_DASHBOARD_ID != null ? String(pref.SELECTED_DASHBOARD_ID) : null,
@@ -1975,10 +2031,23 @@ app.get("/dashboards", async (request, response) => {
 app.put("/dashboards", async (request, response) => {
   const tenant = getAuthorizedTenant(request);
   if (!tenant) return response.status(401).json({ success: false, message: "Konteks perusahaan tidak valid." });
+  // Managing the dashboard list (add/remove/rename) requires pengelola/admin.
+  const access = getRequestAccess(request);
+  if (access.rbac && !access.isAdmin) {
+    const incoming = Array.isArray(request.body?.dashboards) ? request.body.dashboards : [];
+    const canManageAll = incoming.every((e) => {
+      const role = access.access[String(e?.dashboardId)];
+      return role === "pengelola";
+    });
+    if (!incoming.length || !canManageAll) {
+      return response.status(403).json({ success: false, message: "Hanya pengelola atau admin yang dapat mengubah daftar dashboard." });
+    }
+  }
   const dashboards = request.body?.dashboards;
   if (!Array.isArray(dashboards) || dashboards.length > 200 ||
       dashboards.some((entry) => !entry || !isValidDashboardId(entry.dashboardId) ||
-        typeof entry.name !== "string" || entry.name.length < 1 || entry.name.length > 255)) {
+        typeof entry.name !== "string" || entry.name.length < 1 || entry.name.length > 255 ||
+        (entry.description != null && (typeof entry.description !== "string" || entry.description.length > 2000)))) {
     return response.status(400).json({ success: false, message: "Format daftar dashboard tidak valid." });
   }
   const ids = dashboards.map((entry) => String(entry.dashboardId));
@@ -1994,15 +2063,30 @@ app.put("/dashboards", async (request, response) => {
 
     for (let index = 0; index < dashboards.length; index += 1) {
       const entry = dashboards[index];
-      await connection.execute(
-        `MERGE INTO ${dashboardsTable} target
-         USING (SELECT :id AS DASHBOARD_ID FROM dual) source
-         ON (target.DASHBOARD_ID = source.DASHBOARD_ID)
-         WHEN MATCHED THEN UPDATE SET NAME = :name, SORT_ORDER = :sortOrder, UPDATED_AT = SYSTIMESTAMP
-         WHEN NOT MATCHED THEN INSERT (DASHBOARD_ID, NAME, SORT_ORDER, CREATED_AT, UPDATED_AT)
-           VALUES (:id, :name, :sortOrder, SYSTIMESTAMP, SYSTIMESTAMP)`,
-        { id: Number(entry.dashboardId), name: entry.name.trim(), sortOrder: index },
-      );
+      // DESCRIPTION is only touched when the entry explicitly provides it, so a
+      // list save that omits description (the common auto-save) never wipes it.
+      const hasDescription = entry.description != null;
+      if (hasDescription) {
+        await connection.execute(
+          `MERGE INTO ${dashboardsTable} target
+           USING (SELECT :id AS DASHBOARD_ID FROM dual) source
+           ON (target.DASHBOARD_ID = source.DASHBOARD_ID)
+           WHEN MATCHED THEN UPDATE SET NAME = :name, DESCRIPTION = :descr, SORT_ORDER = :sortOrder, UPDATED_AT = SYSTIMESTAMP
+           WHEN NOT MATCHED THEN INSERT (DASHBOARD_ID, NAME, DESCRIPTION, SORT_ORDER, CREATED_AT, UPDATED_AT)
+             VALUES (:id, :name, :descr, :sortOrder, SYSTIMESTAMP, SYSTIMESTAMP)`,
+          { id: Number(entry.dashboardId), name: entry.name.trim(), descr: String(entry.description).trim() || null, sortOrder: index },
+        );
+      } else {
+        await connection.execute(
+          `MERGE INTO ${dashboardsTable} target
+           USING (SELECT :id AS DASHBOARD_ID FROM dual) source
+           ON (target.DASHBOARD_ID = source.DASHBOARD_ID)
+           WHEN MATCHED THEN UPDATE SET NAME = :name, SORT_ORDER = :sortOrder, UPDATED_AT = SYSTIMESTAMP
+           WHEN NOT MATCHED THEN INSERT (DASHBOARD_ID, NAME, SORT_ORDER, CREATED_AT, UPDATED_AT)
+             VALUES (:id, :name, :sortOrder, SYSTIMESTAMP, SYSTIMESTAMP)`,
+          { id: Number(entry.dashboardId), name: entry.name.trim(), sortOrder: index },
+        );
+      }
     }
 
     // Remove DASHBOARDS rows no longer in the list. Widgets are intentionally
@@ -2037,6 +2121,11 @@ app.delete("/dashboards", async (request, response) => {
   const dashboardId = String(request.query.dashboardId ?? "");
   if (!isValidDashboardId(dashboardId)) {
     return response.status(400).json({ success: false, message: "ID dashboard tidak valid." });
+  }
+  // Deleting a dashboard requires pengelola/admin on that dashboard.
+  const accessDel = getRequestAccess(request);
+  if (!accessAllowsAction(accessDel, dashboardId, "pengelola")) {
+    return response.status(403).json({ success: false, message: "Hanya pengelola atau admin yang dapat menghapus dashboard." });
   }
   let connection;
   try {
@@ -2108,6 +2197,11 @@ app.post("/widgets", async (request, response) => {
       widgets.some((widget) => !widget || typeof widget !== "object" || typeof widget.id !== "string" || widget.id.length > 128 || typeof widget.title !== "string" || widget.title.length > 500)) {
     return response.status(400).json({ success: false, message: "Format widget dashboard tidak valid." });
   }
+  // Adding/updating widgets requires editor or higher on that dashboard.
+  const accessW = getRequestAccess(request);
+  if (!accessAllowsAction(accessW, normalizedDashboardId, "editor")) {
+    return response.status(403).json({ success: false, message: "Peran Anda tidak diizinkan mengubah widget dashboard ini." });
+  }
   const dashboardLabel = (dashboardName || normalizedDashboardId).trim();
   const widgetPayloadSize = Buffer.byteLength(JSON.stringify(widgets), "utf8");
   if (widgetPayloadSize > 1_500_000) {
@@ -2156,6 +2250,11 @@ app.delete("/widgets", async (request, response) => {
   const dashboardId = String(request.query.dashboardId ?? "");
   if (!/^[1-9][0-9]{0,11}$/.test(dashboardId)) {
     return response.status(400).json({ success: false, message: "ID dashboard tidak valid." });
+  }
+  // Removing widgets requires editor or higher on that dashboard.
+  const accessWD = getRequestAccess(request);
+  if (!accessAllowsAction(accessWD, dashboardId, "editor")) {
+    return response.status(403).json({ success: false, message: "Peran Anda tidak diizinkan menghapus widget dashboard ini." });
   }
   let connection;
   try {

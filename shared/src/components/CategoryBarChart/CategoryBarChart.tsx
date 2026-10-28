@@ -1,4 +1,4 @@
-import React, { useId, useState } from "react";
+import React, { useEffect, useId, useState } from "react";
 import ChartValueDetail, { ChartHoverTooltip, chartRootProps, selectableProps, toggleIndex, useChartHover } from "../ChartValueDetail/ChartValueDetail";
 import styles from "./CategoryBarChart.module.css";
 
@@ -15,6 +15,8 @@ export interface CategoryBarChartProps {
   subtitle?: string;
   metricLabel?: string;
   data?: unknown;
+  /** Play a one-time grow-up animation on mount when true. */
+  animateOnce?: boolean;
 }
 
 function normalizeData(data: unknown): { label: string; value: number }[] {
@@ -48,9 +50,17 @@ export default function CategoryBarChart({
   subtitle = "",
   metricLabel = "Nilai",
   data = [],
+  animateOnce = false,
 }: CategoryBarChartProps) {
   const [selected, setSelected] = useState<number | null>(null);
   const { hover, hoverHandlers } = useChartHover();
+  const [grown, setGrown] = useState(!animateOnce);
+  useEffect(() => {
+    if (!animateOnce) { setGrown(true); return; }
+    setGrown(false);
+    const r = requestAnimationFrame(() => setGrown(true));
+    return () => cancelAnimationFrame(r);
+  }, [animateOnce]);
   const points = normalizeData(data);
   const gradientId = `bar-${useId().replace(/:/g, "")}`;
   const maxValue = Math.max(...points.map((point) => point.value), 0);
@@ -137,7 +147,22 @@ export default function CategoryBarChart({
                 >
                   {/* Wider invisible hit area so thin bars are easy to hover and click. */}
                   <rect x={left + index * slotWidth} y={top} width={slotWidth} height={plotHeight} fill="transparent" />
-                  <rect x={x} y={y} width={barWidth} height={barHeight} rx="6" fill={`url(#${gradientId})`} stroke={selected === index ? "#172b4d" : "none"} strokeWidth="2" />
+                  <rect
+                    x={x}
+                    y={y}
+                    width={barWidth}
+                    height={barHeight}
+                    rx="6"
+                    fill={`url(#${gradientId})`}
+                    stroke={selected === index ? "#172b4d" : "none"}
+                    strokeWidth="2"
+                    style={{
+                      transform: grown ? "scaleY(1)" : "scaleY(0)",
+                      transformOrigin: `center ${top + plotHeight}px`,
+                      transition: "transform 0.9s cubic-bezier(0.22, 1, 0.36, 1)",
+                      transitionDelay: animateOnce ? `${index * 55}ms` : "0ms",
+                    }}
+                  />
                   <text x={x + barWidth / 2} y={Math.max(top + 11, y - 8)} textAnchor="middle" className={styles.valueText}>
                     {compact.format(point.value)}
                   </text>

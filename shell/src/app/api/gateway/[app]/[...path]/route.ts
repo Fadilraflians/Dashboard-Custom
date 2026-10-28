@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { logger } from "../../../../../../log.js";
 import { AUTH_COOKIE_NAME, getSession } from "@/lib/session";
-import { isLocalDemoEnabled, LOCAL_DEMO_TOKEN } from "@/lib/localDemo";
+import { isLocalDemoEnabled, LOCAL_DEMO_TOKEN, isLocalDemoAdmin } from "@/lib/localDemo";
 import { resolveAiTenant } from "@/lib/aiTenant";
+import { isDbAuthEnabled, listAccessibleDashboards } from "@/lib/authDb";
+import { isAdminSession } from "@/lib/dbAuth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -89,6 +91,7 @@ async function handle(
   const hasBody = !["GET", "HEAD"].includes(method);
   let forwardBody: string | undefined;
   let tenantContext: { tenant: "fashion" | "kemenkeu"; secret: string } | null = null;
+  let aiRbac: { username: string; isAdmin: boolean; access: string } | null = null;
 
   if (app.toLowerCase() === "aigovtech") {
     const cookieStore = await cookies();
@@ -118,6 +121,24 @@ async function handle(
     if (!secret) {
       return NextResponse.json({ message: "Koneksi aman AIGovtech belum dikonfigurasi." }, { status: 503 });
     }
+
+    // RBAC per-user: pass identity + access map so the AI backend can filter
+    // the dashboard list and enforce per-dashboard role. Admins bypass filtering.
+    const admin = isAdminSession(session, isLocalDemoAdmin(session));
+    let accessMap: Record<string, string> = {};
+    if (!admin && isDbAuthEnabled() && session.username) {
+      try {
+        accessMap = await listAccessibleDashboards(session.username, tenant);
+      } catch {
+        accessMap = {};
+      }
+    }
+    aiRbac = {
+      username: session.username || session.name || "",
+      isAdmin: admin,
+      access: JSON.stringify(accessMap),
+    };
+
     tenantContext = { tenant, secret };
   }
 
@@ -167,6 +188,13 @@ async function handle(
           ? {
               "x-aigovtech-tenant": tenantContext.tenant,
               "x-aigovtech-gateway-secret": tenantContext.secret,
+            }
+          : {}),
+        ...(aiRbac
+          ? {
+              "x-aigovtech-username": aiRbac.username,
+              "x-aigovtech-isadmin": aiRbac.isAdmin ? "true" : "false",
+              "x-aigovtech-access": aiRbac.access,
             }
           : {}),
       },

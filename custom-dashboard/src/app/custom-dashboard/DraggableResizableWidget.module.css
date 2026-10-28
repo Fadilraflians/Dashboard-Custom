@@ -26,6 +26,13 @@
   z-index: 20 !important;
 }
 
+/* Widget focused (clicked) as the chatbot context — persistent ring. */
+.focused {
+  border-color: #0b8077 !important;
+  box-shadow: 0 0 0 3px rgb(11 128 119 / 35%), 0 8px 22px rgb(0 94 84 / 16%) !important;
+  z-index: 15;
+}
+
 @keyframes newWidgetHighlight {
   50% { box-shadow: 0 0 0 7px rgb(0 168 144 / 12%), 0 10px 28px rgb(0 94 84 / 18%); }
 }

@@ -163,6 +163,10 @@ export interface DashboardItem {
   subtitle: string;
   metricText: string;
   widgets: WidgetItem[];
+  /** RBAC: the signed-in user's role on this dashboard (viewer/editor/pengelola/admin). */
+  roleAccess?: string;
+  /** Saved description (DASHBOARDS.DESCRIPTION); null when not set. */
+  description?: string | null;
 }
 
 export interface ChatMessage {
@@ -220,7 +224,7 @@ interface CandidateUser {
 /** Turns a dashboard stored in the database into a sidebar entry. */
 function dashboardFromPersisted(
   context: TenantContext,
-  entry: { dashboardId: string | number; name?: string; dashboardName?: string; widgets?: WidgetItem[] },
+  entry: { dashboardId: string | number; name?: string; dashboardName?: string; widgets?: WidgetItem[]; roleAccess?: string | null; description?: string | null },
 ): DashboardItem {
   const widgets = Array.isArray(entry.widgets) ? entry.widgets.map(normalizeWidgetSubtitle) : [];
   const databaseId = String(entry.dashboardId);
@@ -234,6 +238,8 @@ function dashboardFromPersisted(
     subtitle: `${context.table} · Oracle`,
     metricText: `${widgets.length} Widget`,
     widgets,
+    roleAccess: entry.roleAccess ?? (context.isAdmin ? "admin" : undefined),
+    description: entry.description ?? null,
   };
 }
 
@@ -330,6 +336,13 @@ export default function CustomDashboardPage() {
   const [memberRole, setMemberRole] = useState<string>("viewer");
   const [memberUnit, setMemberUnit] = useState<string>("");
   const [memberBusy, setMemberBusy] = useState<boolean>(false);
+  // Inline edit of an existing member's access role.
+  const [editingMemberId, setEditingMemberId] = useState<number | null>(null);
+  const [editingMemberRole, setEditingMemberRole] = useState<string>("viewer");
+  // Edit of dashboard name + description in Step 1 (pengelola/admin only).
+  const [detailEditName, setDetailEditName] = useState<string>("");
+  const [detailEditDesc, setDetailEditDesc] = useState<string>("");
+  const [detailInfoBusy, setDetailInfoBusy] = useState<boolean>(false);
   const [newDashboardTitle, setNewDashboardTitle] = useState<string>("");
   const [editingDashboardId, setEditingDashboardId] = useState<string | null>(null);
   const [editingDashboardTitle, setEditingDashboardTitle] = useState("");
@@ -339,6 +352,12 @@ export default function CustomDashboardPage() {
   const [chatSending, setChatSending] = useState<boolean>(false);
   const [chatError, setChatError] = useState<string | null>(null);
   const [highlightedWidgetIds, setHighlightedWidgetIds] = useState<string[]>([]);
+  // Widget focused by clicking it: shown as a context chip above the chatbot.
+  const [focusedWidgetId, setFocusedWidgetId] = useState<string | null>(null);
+  // Entrance animation: replays every time a dashboard is opened/clicked and on
+  // every (re)load. A key that changes forces widgets to remount & re-animate.
+  const [animateWidgets, setAnimateWidgets] = useState<boolean>(false);
+  const [animationNonce, setAnimationNonce] = useState<number>(0);
   const [aiHealthStatus, setAiHealthStatus] = useState<AiHealthStatus>("checking");
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
     {
@@ -357,6 +376,33 @@ export default function CustomDashboardPage() {
   const hasDashboards = dashboards.length > 0;
   // RBAC: only admins may open the dashboard Detail / Member configuration.
   const isAdmin = tenantContext?.isAdmin === true;
+
+  // Role of the signed-in user on the currently selected dashboard.
+  // Admin always has full rights. When RBAC is off (IFP/legacy) tenantContext
+  // has no isAdmin flag and roleAccess is undefined -> treat as full rights so
+  // existing behaviour is preserved.
+  const rbacActive = tenantContext?.isAdmin !== undefined;
+  const activeRole = isAdmin
+    ? "admin"
+    : (dashboards.find((d) => d.id === selectedDashboardId)?.roleAccess || null);
+  const roleRank: Record<string, number> = { viewer: 1, editor: 2, pengelola: 3, admin: 4 };
+  const rank = activeRole ? (roleRank[activeRole] || 0) : 0;
+  // Capability flags. Without RBAC (legacy) everything is allowed.
+  const canEditWidgets = !rbacActive || isAdmin || rank >= roleRank.editor;
+  const canAddDashboard = !rbacActive || isAdmin || rank >= roleRank.pengelola;
+  // Viewers can only look; the chatbot (which creates/changes widgets) is for
+  // editor and above. Same threshold as editing widgets.
+  const canUseChatbot = canEditWidgets;
+
+  // Seed the editable name/description fields when the Detail overlay opens.
+  useEffect(() => {
+    if (!detailDashboard) return;
+    const live = dashboards.find((d) => d.id === detailDashboard.id) || detailDashboard;
+    setDetailEditName(live.title);
+    setDetailEditDesc(live.description ?? "");
+    // Only when the opened dashboard changes (not on every keystroke).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [detailDashboard?.id]);
 
   // Load members + candidate users when the Member step opens for a dashboard.
   useEffect(() => {
@@ -420,6 +466,94 @@ export default function CustomDashboardPage() {
     }
   }
 
+  function handleStartEditMember(member: DashboardMember) {
+    setEditingMemberId(member.id);
+    setEditingMemberRole(member.roleAccess);
+  }
+
+  // Save dashboard name + description (Step 1). Updates local state, then
+  // persists the whole list including the edited description via PUT /dashboards.
+  async function handleSaveDashboardInfo() {
+    if (!detailDashboard) return;
+    const name = detailEditName.trim();
+    if (!name) {
+      setToastMessage("Nama dashboard tidak boleh kosong.");
+      return;
+    }
+    const targetId = detailDashboard.id;
+    const description = detailEditDesc.trim();
+    setDetailInfoBusy(true);
+
+    // Update local state so UI reflects the change immediately.
+    const nextDashboards = dashboards.map((d) =>
+      d.id === targetId ? { ...d, title: name, description } : d,
+    );
+    setDashboards(nextDashboards);
+
+    try {
+      const appId = new URLSearchParams(window.location.search).get("appId");
+      const endpoint = new URL("/api/gateway/aigovtech/dashboards", window.location.origin);
+      if (appId) endpoint.searchParams.set("appId", appId);
+      const response = await fetch(endpoint, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        // Send the full list; include description for every dashboard so the
+        // edited one is saved and others keep theirs.
+        body: JSON.stringify({
+          dashboards: nextDashboards.map((d) => ({
+            dashboardId: d.databaseId,
+            name: d.title,
+            description: d.description ?? "",
+          })),
+        }),
+      });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload.message || `Gagal menyimpan (HTTP ${response.status}).`);
+      }
+      setToastMessage("Informasi dashboard tersimpan.");
+    } catch (error) {
+      console.error("Failed to save dashboard info", error);
+      setToastMessage(error instanceof Error ? error.message : "Gagal menyimpan informasi dashboard.");
+    } finally {
+      setDetailInfoBusy(false);
+    }
+  }
+
+  async function handleSaveMemberRole(member: DashboardMember) {
+    if (!detailDashboard) return;
+    const dashboardId = detailDashboard.databaseId || detailDashboard.id;
+    setMemberBusy(true);
+    try {
+      const appId = new URLSearchParams(window.location.search).get("appId");
+      const url = new URL("/api/dashboard-members", window.location.origin);
+      if (appId) url.searchParams.set("appId", appId);
+      // POST MERGE-updates the existing member (same unique key) with the new role.
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          dashboardId: String(dashboardId),
+          username: member.username,
+          roleAccess: editingMemberRole,
+          unit: member.unit,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setMemberList(Array.isArray(data.members) ? data.members : []);
+        setEditingMemberId(null);
+        setToastMessage("Hak akses member diperbarui.");
+      } else {
+        setToastMessage(data.message || "Gagal memperbarui hak akses.");
+      }
+    } catch {
+      setToastMessage("Gagal memperbarui hak akses.");
+    } finally {
+      setMemberBusy(false);
+    }
+  }
+
   async function handleRemoveMember(id: number) {
     setMemberBusy(true);
     try {
@@ -445,6 +579,28 @@ export default function CustomDashboardPage() {
   const availableCandidates = candidateUsers.filter(
     (c) => !memberList.some((m) => m.username === c.username),
   );
+
+  // The widget currently focused (clicked) across all dashboards.
+  const focusedWidget = focusedWidgetId
+    ? dashboards.flatMap((d) => d.widgets).find((w) => w.id === focusedWidgetId) || null
+    : null;
+
+  // The Detail overlay must reflect the LIVE dashboard (widgets sync from the
+  // DB after it opens), not the snapshot captured when the button was clicked.
+  // Fall back to the snapshot if the dashboard is no longer in the list.
+  const detailDashboardLive = detailDashboard
+    ? dashboards.find((d) => d.id === detailDashboard.id) || detailDashboard
+    : null;
+
+  // Click a widget -> focus it and open the chatbot so the selected widget
+  // becomes the conversation context (see the composer chip). The focus ring is
+  // driven solely by focusedWidgetId, so clearing the chip clears the ring.
+  function handleFocusWidget(widgetId: string) {
+    // Viewers cannot use the chatbot, so focusing a widget there is pointless.
+    if (!canUseChatbot) return;
+    setFocusedWidgetId(widgetId);
+    setSidebarView("chatbot");
+  }
 
   useEffect(() => {
     let active = true;
@@ -573,7 +729,7 @@ export default function CustomDashboardPage() {
             }
           }
 
-          nextDashboards = (dashboardsPayload.dashboards as { dashboardId: string | number; name?: string }[]).map((entry) =>
+          nextDashboards = (dashboardsPayload.dashboards as { dashboardId: string | number; name?: string; roleAccess?: string | null; description?: string | null }[]).map((entry) =>
             dashboardFromPersisted(nextContext, { ...entry, widgets: widgetsByDashboard.get(String(entry.dashboardId)) || [] }),
           );
 
@@ -866,6 +1022,17 @@ export default function CustomDashboardPage() {
     showToast("âœ¨ Posisi semua widget dirapikan ke susunan grid awal!");
   }
 
+  // Entrance animation trigger: plays EVERY time the selected dashboard changes
+  // (clicking a dashboard in the list) and on every (re)load. The nonce bump
+  // changes each widget's React key so they remount and re-run the animation.
+  useEffect(() => {
+    if (!widgetsLoaded || !selectedDashboardId) return;
+    setAnimationNonce((n) => n + 1);
+    setAnimateWidgets(true);
+    const timer = window.setTimeout(() => setAnimateWidgets(false), 1800);
+    return () => window.clearTimeout(timer);
+  }, [selectedDashboardId, widgetsLoaded]);
+
   // Auto-scroll chat to bottom INSIDE the messages area ONLY (never scrolling the page/header)
   useEffect(() => {
     if (sidebarView === "chatbot" && chatMessagesAreaRef.current) {
@@ -875,6 +1042,14 @@ export default function CustomDashboardPage() {
       });
     }
   }, [chatMessages, chatSending, sidebarView]);
+
+  // RBAC: viewers may not use the chatbot. If a viewer ends up in chatbot view
+  // (e.g. restored preference), force them back to the dashboard list.
+  useEffect(() => {
+    if (!canUseChatbot && sidebarView === "chatbot") {
+      setSidebarView("dashboards");
+    }
+  }, [canUseChatbot, sidebarView]);
 
   // Listen to shell trigger events for chatbot
   useEffect(() => {
@@ -915,6 +1090,10 @@ export default function CustomDashboardPage() {
   // removals (including an empty list) are all persisted. No localStorage.
   useEffect(() => {
     if (!tenantContext || !widgetsLoaded) return;
+    // RBAC: only those who may manage the dashboard list (pengelola/admin)
+    // persist it. Viewers/editors never trigger this auto-save, so they don't
+    // get a "forbidden" error just by opening a dashboard.
+    if (!canAddDashboard) return;
     const timeoutId = window.setTimeout(async () => {
       const appId = new URLSearchParams(window.location.search).get("appId");
       const endpoint = new URL("/api/gateway/aigovtech/dashboards", window.location.origin);
@@ -935,7 +1114,7 @@ export default function CustomDashboardPage() {
       }
     }, 500);
     return () => window.clearTimeout(timeoutId);
-  }, [dashboards, tenantContext, widgetsLoaded]);
+  }, [dashboards, tenantContext, widgetsLoaded, canAddDashboard]);
 
   // Save UI preferences (selected dashboard, sidebar) to the database.
   useEffect(() => {
@@ -966,8 +1145,16 @@ export default function CustomDashboardPage() {
       if (appId) endpoint.searchParams.set("appId", appId);
       // Each dashboard is saved on its own: one failing dashboard must not stop
       // the dashboards after it from being saved (they would be lost on refresh).
+      // RBAC: only persist widgets for dashboards the user may edit (editor+).
+      // Admin (and legacy/no-RBAC) can edit all.
+      const mayEdit = (roleAccess?: string) => {
+        if (!rbacActive || isAdmin) return true;
+        const r = roleAccess ? (roleRank[roleAccess] || 0) : 0;
+        return r >= roleRank.editor;
+      };
       let failed = 0;
       for (const dashboard of dashboards) {
+        if (!mayEdit(dashboard.roleAccess)) continue;
         try {
           const response = await fetch(endpoint, {
             method: "POST",
@@ -1154,6 +1341,11 @@ export default function CustomDashboardPage() {
       const customEvent = event as CustomEvent;
       const widget = customEvent.detail as WidgetItem;
       if (!widget || !widget.id) return;
+      // RBAC: viewers may not add widgets to the dashboard.
+      if (!canEditWidgets) {
+        showToast("Peran Anda hanya dapat melihat dashboard ini.");
+        return;
+      }
 
       setDashboards((prev) =>
         prev.map((d) => {
@@ -1173,6 +1365,11 @@ export default function CustomDashboardPage() {
       const customEvent = event as CustomEvent;
       const widgets = customEvent.detail as WidgetItem[];
       if (!Array.isArray(widgets) || widgets.length === 0) return;
+      // RBAC: viewers may not add widgets to the dashboard.
+      if (!canEditWidgets) {
+        showToast("Peran Anda hanya dapat melihat dashboard ini.");
+        return;
+      }
 
       setDashboards((prev) =>
         prev.map((d) => {
@@ -1195,7 +1392,7 @@ export default function CustomDashboardPage() {
       window.removeEventListener("aigovtech:add-widget", handleAddWidgetEvent);
       window.removeEventListener("aigovtech:add-widgets", handleAddMultipleWidgetsEvent);
     };
-  }, [selectedDashboardId]);
+  }, [selectedDashboardId, canEditWidgets]);
 
   // Handle sending message in Chatbot
   // Handle sending message in Chatbot
@@ -1242,11 +1439,23 @@ export default function CustomDashboardPage() {
       const appId = new URLSearchParams(window.location.search).get("appId");
       const chatUrl = new URL("/api/gateway/aigovtech/chat", window.location.origin);
       if (appId) chatUrl.searchParams.set("appId", appId);
+      // When a widget is focused, give the AI its context (title + type) so the
+      // reply is about that widget. This only affects what is sent, not the
+      // visible chat bubble.
+      const outgoingMessages = newConvo.map(({ role, content }) => ({ role, content }));
+      if (focusedWidget) {
+        const last = outgoingMessages[outgoingMessages.length - 1];
+        if (last && last.role === "user") {
+          last.content =
+            `[Konteks widget terpilih: "${focusedWidget.title}" (${focusedWidget.type === "card" ? "kartu metrik" : "grafik"})] ` +
+            last.content;
+        }
+      }
       const res = await fetch(chatUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          messages: newConvo.map(({ role, content }) => ({ role, content })),
+          messages: outgoingMessages,
         }),
       });
       resData = await res.json().catch(() => null);
@@ -1396,6 +1605,11 @@ export default function CustomDashboardPage() {
 
   // Remove a single widget from current dashboard
   function handleRemoveWidget(widgetId: string, widgetName?: string) {
+    // RBAC: viewers may not remove widgets.
+    if (!canEditWidgets) {
+      showToast("Peran Anda hanya dapat melihat dashboard ini.");
+      return;
+    }
     setDashboards((prev) =>
       prev.map((d) => {
         if (d.id !== selectedDashboardId) return d;
@@ -1656,10 +1870,33 @@ export default function CustomDashboardPage() {
                   handleSendChatMessage();
                 }}
               >
+                {focusedWidget && (
+                  <div className={styles.chatbotContextChip}>
+                    <span className={styles.chatbotContextIcon}>
+                      {focusedWidget.type === "card" ? <Layers size={13} /> : <LayoutGrid size={13} />}
+                    </span>
+                    <span className={styles.chatbotContextText}>
+                      <strong>{focusedWidget.title}</strong>
+                      <small>{focusedWidget.type === "card" ? "Kartu metrik" : "Grafik"} · widget terpilih</small>
+                    </span>
+                    <button
+                      type="button"
+                      className={styles.chatbotContextClose}
+                      onClick={() => {
+                        setFocusedWidgetId(null);
+                        setHighlightedWidgetIds([]);
+                      }}
+                      aria-label="Lepas widget terpilih"
+                      title="Lepas widget terpilih"
+                    >
+                      <X size={13} />
+                    </button>
+                  </div>
+                )}
                 <div className={styles.chatbotComposerBox}>
                   <textarea
                     className={styles.chatbotTextarea}
-                    placeholder="Minta analisis data atau grafik..."
+                    placeholder={focusedWidget ? `Tanya tentang "${focusedWidget.title}"...` : "Minta analisis data atau grafik..."}
                     rows={2}
                     value={chatDraft}
                     onChange={(e) => setChatDraft(e.target.value)}
@@ -1717,6 +1954,7 @@ export default function CustomDashboardPage() {
 
               {/* Action Buttons: + Tambah Dashboard & âœ¨ Chatbot AiGovtech */}
               <div className={styles.sidebarActionButtons}>
+                {canAddDashboard && (
                 <button
                   type="button"
                   className={styles.btnTambahDashboard}
@@ -1726,6 +1964,8 @@ export default function CustomDashboardPage() {
                   <Plus size={16} />
                   <span>Tambah Dashboard</span>
                 </button>
+                )}
+                {canUseChatbot && (
                 <button
                   type="button"
                   className={styles.btnOpenAiChatbot}
@@ -1737,6 +1977,7 @@ export default function CustomDashboardPage() {
                   <span>Chatbot AiGovtech</span>
                   <span className={styles.aiBadgePill}>AI</span>
                 </button>
+                )}
               </div>
 
             {/* Kotak Pencarian */}
@@ -1787,6 +2028,10 @@ export default function CustomDashboardPage() {
                     onClick={() => {
                       setSelectedDashboardId(item.id);
                       setDetailDashboard(null);
+                      // Replay the entrance animation on every click (even if
+                      // the same dashboard is clicked again).
+                      setAnimationNonce((n) => n + 1);
+                      setAnimateWidgets(true);
                     }}
                   >
                     <div className={styles.itemTopBadges}>
@@ -1909,8 +2154,11 @@ export default function CustomDashboardPage() {
                     </div>
                     <h3 className={styles.listEmptyTitle}>Belum ada dashboard</h3>
                     <p className={styles.listEmptyDesc}>
-                      Buat dashboard pertama Anda, lalu isi dengan kartu metrik dan grafik melalui chatbot AiGovtech.
+                      {canAddDashboard
+                        ? "Buat dashboard pertama Anda, lalu isi dengan kartu metrik dan grafik melalui chatbot AiGovtech."
+                        : "Belum ada dashboard yang diberikan untuk akun Anda. Hubungi admin untuk mendapatkan akses."}
                     </p>
+                    {canAddDashboard && (
                     <button
                       type="button"
                       className={styles.listEmptyPrimaryBtn}
@@ -1919,11 +2167,13 @@ export default function CustomDashboardPage() {
                       <Plus size={15} />
                       <span>Buat Dashboard Pertama</span>
                     </button>
+                    )}
                     <button
                       type="button"
                       className={styles.listEmptyGhostBtn}
                       onClick={() => hasDashboards && setSidebarView("chatbot")}
-                      disabled={!hasDashboards}
+                      disabled={!hasDashboards || !canUseChatbot}
+                      hidden={!canUseChatbot}
                       title="Buat dashboard terlebih dahulu untuk menggunakan chatbot"
                     >
                       <Sparkles size={13} />
@@ -2037,6 +2287,7 @@ export default function CustomDashboardPage() {
                 <span>Rapikan Grid</span>
               </button>}
 
+              {canUseChatbot && (
               <button
                 type="button"
                 className={styles.btnHeaderAiChat}
@@ -2051,6 +2302,7 @@ export default function CustomDashboardPage() {
                 <span>AiGovtech</span>
                 <span className={styles.headerAiDot} />
               </button>
+              )}
             </div>
           </div>
 
@@ -2071,40 +2323,44 @@ export default function CustomDashboardPage() {
                   transaksi {tenantContext?.databaseLabel || "perusahaan"} dari database {tenantContext?.table || "Oracle"}.
                 </p>
 
-                <button
-                  type="button"
-                  className={styles.btnOpenAiChat}
-                  onClick={() => hasDashboards && setSidebarView("chatbot")}
-                  disabled={!hasDashboards}
-                  title={hasDashboards ? "Buka Chatbot AiGovtech di Sidebar" : "Buat dashboard terlebih dahulu untuk menggunakan chatbot"}
-                  style={{ marginBottom: "18px" }}
-                >
-                  <Sparkles size={15} />
-                  <span>Buka Chatbot AiGovtech di Sidebar</span>
-                </button>
-
-                <div className={styles.emptyDivider} />
-
-                <span className={styles.emptySuggestionsLabel}>
-                  CONTOH PERTANYAAN KE AIGOVTECH DI SIDEBAR:
-                </span>
-                <div className={styles.emptyPromptList}>
-                  {starterPrompts.slice(0, 3).map((prompt) => (
-                    <div
-                      key={prompt}
-                      className={styles.emptyPromptChip}
-                      onClick={() => {
-                        if (!hasDashboards) return;
-                        setSidebarView("chatbot");
-                        handleSendChatMessage(prompt);
-                      }}
-                      style={{ cursor: hasDashboards ? "pointer" : "not-allowed", opacity: hasDashboards ? 1 : 0.55 }}
-                      title={hasDashboards ? "Klik untuk meminta AI menganalisis & membuat widget ini" : "Buat dashboard terlebih dahulu untuk menggunakan chatbot"}
+                {canUseChatbot && (
+                  <>
+                    <button
+                      type="button"
+                      className={styles.btnOpenAiChat}
+                      onClick={() => hasDashboards && setSidebarView("chatbot")}
+                      disabled={!hasDashboards}
+                      title={hasDashboards ? "Buka Chatbot AiGovtech di Sidebar" : "Buat dashboard terlebih dahulu untuk menggunakan chatbot"}
+                      style={{ marginBottom: "18px" }}
                     >
-                      <span>"{prompt}"</span>
+                      <Sparkles size={15} />
+                      <span>Buka Chatbot AiGovtech di Sidebar</span>
+                    </button>
+
+                    <div className={styles.emptyDivider} />
+
+                    <span className={styles.emptySuggestionsLabel}>
+                      CONTOH PERTANYAAN KE AIGOVTECH DI SIDEBAR:
+                    </span>
+                    <div className={styles.emptyPromptList}>
+                      {starterPrompts.slice(0, 3).map((prompt) => (
+                        <div
+                          key={prompt}
+                          className={styles.emptyPromptChip}
+                          onClick={() => {
+                            if (!hasDashboards) return;
+                            setSidebarView("chatbot");
+                            handleSendChatMessage(prompt);
+                          }}
+                          style={{ cursor: hasDashboards ? "pointer" : "not-allowed", opacity: hasDashboards ? 1 : 0.55 }}
+                          title={hasDashboards ? "Klik untuk meminta AI menganalisis & membuat widget ini" : "Buat dashboard terlebih dahulu untuk menggunakan chatbot"}
+                        >
+                          <span>"{prompt}"</span>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  </>
+                )}
               </div>
             </section>
           ) : (
@@ -2132,6 +2388,7 @@ export default function CustomDashboardPage() {
                       icon={w.icon}
                       badge={w.badge}
                       delta={w.delta}
+                      animateOnce={animateWidgets}
                     />
                   );
                 } else if (w.chartType === "donut-product" || w.id === "chart-top-produk") {
@@ -2143,6 +2400,7 @@ export default function CustomDashboardPage() {
                       data={w.data}
                       metricLabel={w.metricLabel}
                       centerLabel={w.centerLabel}
+                      animateOnce={animateWidgets}
                     />
                   );
                 } else if (w.chartType === "bar-category" || w.chartType === "bar") {
@@ -2153,6 +2411,7 @@ export default function CustomDashboardPage() {
                       subtitle={displayWidget.subtitle}
                       metricLabel={w.metricLabel}
                       data={w.data}
+                      animateOnce={animateWidgets}
                     />
                   );
                 } else if (w.chartType === "line-category" || w.chartType === "line") {
@@ -2164,6 +2423,7 @@ export default function CustomDashboardPage() {
                       subtitle={displayWidget.subtitle}
                       metricLabel={w.metricLabel}
                       data={w.data}
+                      animateOnce={animateWidgets}
                     />
                   );
                 } else if (w.chartType === "pie-category" || w.chartType === "pie") {
@@ -2174,6 +2434,7 @@ export default function CustomDashboardPage() {
                       metricLabel={w.metricLabel}
                       centerLabel={w.centerLabel}
                       data={w.data}
+                      animateOnce={animateWidgets}
                     />
                   );
                 } else if (w.chartType === "area-category" || w.chartType === "area") {
@@ -2183,6 +2444,7 @@ export default function CustomDashboardPage() {
                       subtitle={displayWidget.subtitle}
                       metricLabel={w.metricLabel}
                       data={w.data}
+                      animateOnce={animateWidgets}
                     />
                   );
                 } else if (w.chartType === "scatter") {
@@ -2193,6 +2455,7 @@ export default function CustomDashboardPage() {
                       metricLabel={w.metricLabel}
                       centerLabel={w.centerLabel}
                       data={w.data}
+                      animateOnce={animateWidgets}
                     />
                   );
                 } else if (w.chartType === "table") {
@@ -2212,6 +2475,7 @@ export default function CustomDashboardPage() {
                       subtitle={displayWidget.subtitle}
                       data={w.data}
                       summary={w.summary}
+                      animateOnce={animateWidgets}
                     />
                   );
                 } else if (w.chartType === "proporsi-program" || w.id === "chart-proporsi-program") {
@@ -2241,13 +2505,14 @@ export default function CustomDashboardPage() {
                       subtitle={displayWidget.subtitle}
                       data={w.data}
                       summary={w.summary}
+                      animateOnce={animateWidgets}
                     />
                   );
                 }
 
                 return (
                   <DraggableResizableWidget
-                    key={w.id}
+                    key={`${w.id}-${animationNonce}`}
                     id={w.id}
                     index={index}
                     title={w.title}
@@ -2258,8 +2523,11 @@ export default function CustomDashboardPage() {
                     y={w.y}
                     onResize={handleWidgetResize}
                     onPositionChange={handleWidgetPositionChange}
-                    onRemove={() => handleRemoveWidget(w.id, w.title)}
+                    onRemove={canEditWidgets ? () => handleRemoveWidget(w.id, w.title) : undefined}
+                    readOnly={!canEditWidgets}
                     highlighted={highlightedWidgetIds.includes(w.id)}
+                    focused={focusedWidgetId === w.id}
+                    onFocusWidget={() => handleFocusWidget(w.id)}
                   >
                     <React.Suspense fallback={<div style={{ padding: 16, color: "#667085" }}>Memuat visualisasi...</div>}>
                       {widgetContent}
@@ -2329,28 +2597,53 @@ export default function CustomDashboardPage() {
                 </div>
                 <div className={styles.dashboardConfigFields}>
                   <label>Kode Dashboard <small>(ID tersimpan)</small>
-                    <input readOnly value={`DB-${tenantContext?.tenant === "kemenkeu" ? "KEU" : "FASHION"}-${detailDashboard.databaseId || detailDashboard.id}`} />
+                    <input readOnly value={`DB-${tenantContext?.tenant === "kemenkeu" ? "KEU" : "FASHION"}-${(detailDashboardLive || detailDashboard).databaseId || (detailDashboardLive || detailDashboard).id}`} />
                     <em>Kode unik dashboard yang tersimpan di database.</em>
                   </label>
                   <label>Nama Dashboard
-                    <input readOnly value={detailDashboard.title} />
-                    <em>Nama dashboard yang sedang dipilih pada daftar.</em>
+                    <input
+                      value={detailEditName}
+                      onChange={(e) => setDetailEditName(e.target.value)}
+                      readOnly={!canAddDashboard}
+                      maxLength={255}
+                      placeholder="Nama dashboard"
+                    />
+                    <em>{canAddDashboard ? "Ubah nama dashboard, lalu simpan." : "Nama dashboard yang sedang dipilih pada daftar."}</em>
                   </label>
                   <label>Kategori Dashboard
-                    <input readOnly value={detailDashboard.category} />
+                    <input readOnly value={(detailDashboardLive || detailDashboard).category} />
                     <em>Kategori sumber data dashboard.</em>
                   </label>
                   <div className={styles.dashboardConfigTagField}>
                     <strong>Tag Dashboard</strong>
-                    <div><span>{detailDashboard.category}</span><span>{detailDashboard.badge}</span><span>{tenantContext?.databaseLabel || "Oracle"}</span></div>
+                    <div><span>{(detailDashboardLive || detailDashboard).category}</span><span>{(detailDashboardLive || detailDashboard).badge}</span><span>{tenantContext?.databaseLabel || "Oracle"}</span></div>
                     <em>Label berdasarkan kategori, status, dan sumber data yang tersedia.</em>
                   </div>
                   <label className={styles.dashboardConfigDescription}>Deskripsi Dashboard
-                    <textarea readOnly value={`Dashboard ${detailDashboard.title} menggunakan sumber data ${tenantContext?.table || detailDashboard.subtitle} dan berisi ${detailDashboard.widgets.length} widget.`} />
+                    <textarea
+                      value={detailEditDesc}
+                      onChange={(e) => setDetailEditDesc(e.target.value)}
+                      readOnly={!canAddDashboard}
+                      maxLength={2000}
+                      placeholder={`Dashboard ${detailEditName || (detailDashboardLive || detailDashboard).title} menggunakan sumber data ${tenantContext?.table || (detailDashboardLive || detailDashboard).subtitle}.`}
+                    />
+                    <em>{canAddDashboard ? "Deskripsi tersimpan di database (DASHBOARDS.DESCRIPTION)." : "Deskripsi dashboard."}</em>
                   </label>
+                  {canAddDashboard && (
+                    <div className={styles.dashboardConfigInfoActions}>
+                      <button
+                        type="button"
+                        className={styles.dashboardConfigContinue}
+                        onClick={handleSaveDashboardInfo}
+                        disabled={detailInfoBusy || !detailEditName.trim()}
+                      >
+                        <Check size={15} /> Simpan Informasi
+                      </button>
+                    </div>
+                  )}
                   <div className={styles.dashboardDetailWidgetSection}>
-                    <h3>Widget pada dashboard ({detailDashboard.widgets.length})</h3>
-                    {detailDashboard.widgets.length ? <ul>{detailDashboard.widgets.map((widget) => (
+                    <h3>Widget pada dashboard ({(detailDashboardLive || detailDashboard).widgets.length})</h3>
+                    {(detailDashboardLive || detailDashboard).widgets.length ? <ul>{(detailDashboardLive || detailDashboard).widgets.map((widget) => (
                       <li key={widget.id}>
                         <span className={styles.dashboardDetailWidgetIcon}>{widget.type === "card" ? <Layers size={14} /> : <LayoutGrid size={14} />}</span>
                         <span className={styles.dashboardDetailWidgetText}><strong>{widget.title}</strong><small>{widget.subtitle || (widget.type === "card" ? "Kartu metrik" : "Grafik")}</small></span>
@@ -2435,17 +2728,65 @@ export default function CustomDashboardPage() {
                               <strong>{m.name}</strong>
                               <small>{m.email || m.username}{m.unit ? ` · ${m.unit}` : ""}</small>
                             </span>
-                            <span className={styles.dashboardMemberRole}>{m.roleAccess}</span>
-                            <button
-                              type="button"
-                              className={styles.itemDeleteBtn}
-                              onClick={() => handleRemoveMember(m.id)}
-                              disabled={memberBusy}
-                              aria-label={`Hapus member ${m.name}`}
-                              title={`Hapus ${m.name}`}
-                            >
-                              <Trash2 size={13} />
-                            </button>
+                            {editingMemberId === m.id ? (
+                              <>
+                                <select
+                                  className={styles.dashboardMemberRoleSelect}
+                                  value={editingMemberRole}
+                                  onChange={(e) => setEditingMemberRole(e.target.value)}
+                                  disabled={memberBusy}
+                                  aria-label={`Peran akses ${m.name}`}
+                                >
+                                  <option value="viewer">Viewer</option>
+                                  <option value="editor">Editor</option>
+                                  <option value="pengelola">Pengelola</option>
+                                </select>
+                                <button
+                                  type="button"
+                                  className={styles.itemActionBtn}
+                                  onClick={() => handleSaveMemberRole(m)}
+                                  disabled={memberBusy}
+                                  aria-label={`Simpan hak akses ${m.name}`}
+                                  title="Simpan"
+                                >
+                                  <Check size={13} />
+                                </button>
+                                <button
+                                  type="button"
+                                  className={styles.itemActionBtn}
+                                  onClick={() => setEditingMemberId(null)}
+                                  disabled={memberBusy}
+                                  aria-label={`Batal edit ${m.name}`}
+                                  title="Batal"
+                                >
+                                  <X size={13} />
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <span className={styles.dashboardMemberRole}>{m.roleAccess}</span>
+                                <button
+                                  type="button"
+                                  className={styles.itemActionBtn}
+                                  onClick={() => handleStartEditMember(m)}
+                                  disabled={memberBusy}
+                                  aria-label={`Ubah hak akses ${m.name}`}
+                                  title={`Ubah hak akses ${m.name}`}
+                                >
+                                  <Pencil size={13} />
+                                </button>
+                                <button
+                                  type="button"
+                                  className={styles.itemDeleteBtn}
+                                  onClick={() => handleRemoveMember(m.id)}
+                                  disabled={memberBusy}
+                                  aria-label={`Hapus member ${m.name}`}
+                                  title={`Hapus ${m.name}`}
+                                >
+                                  <Trash2 size={13} />
+                                </button>
+                              </>
+                            )}
                           </li>
                         ))}
                       </ul>
